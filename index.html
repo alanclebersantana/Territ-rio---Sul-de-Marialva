@@ -601,7 +601,8 @@ input[type=url]{width:100%;background:var(--surface);border:1px solid var(--line
   <div class="card"><h3>App Cartões <span class="n">para os publicadores</span></h3>
     <p style="margin:0 0 8px;font-size:13.5px;color:var(--muted)" id="cardsLink">—</p>
     <div class="fields"><label class="f full"><span>Endereço do app Cartões (para os QR Codes)</span><input type="url" id="cfgCartoesUrl" placeholder="https://SEU-USUARIO.github.io/nosso-territorio-cartoes/" autocomplete="off" spellcheck="false"></label></div>
-    <div class="acts"><button class="btn" id="btnCardsSeed">Importar cartões do PDF</button><button class="btn" id="btnQrPrint"><svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/></svg>QR Codes para imprimir</button></div>
+    <p style="margin:6px 0 8px;font-size:12.5px;color:var(--muted)" id="cardsUrlStatus">—</p>
+    <div class="acts"><button class="btn" id="btnCardsUrl">Localizar / verificar endereço</button><button class="btn" id="btnCardsSeed">Importar cartões do PDF</button><button class="btn" id="btnQrPrint"><svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/></svg>QR Codes para imprimir</button></div>
     <p class="note" style="text-align:left" id="cardsInfo">Os publicadores só instalam o app Cartões e abrem: ele se conecta sozinho a esta congregação, sem login e sem código.</p>
   </div>
   <div class="card"><h3>Aparência</h3><div class="seg" id="cfgTheme"><button data-t="light">Claro</button><button data-t="dark">Escuro</button><button data-t="auto">Do sistema</button></div></div>
@@ -697,7 +698,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
    cartões de casas em congregacoes/{uid}/cartoes, cópias em .../backups.
    ===================================================================== */
 'use strict';
-const APP_VER='2.1.0';
+const APP_VER='2.1.1';
 const $=id=>document.getElementById(id);
 const pad2=k=>String(k).padStart(2,'0');
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -851,7 +852,7 @@ async function boot(u){
   if(legacy) toast('Dados do app anterior importados');
   pushToCloud(true); attachListener(); publicoDirty=true; pushPublico();
   initMap(); refreshAll(); applyTheme(themePref()); markTheme();
-  loadCards(); ensureDefault();
+  loadCards(); ensureDefault(); setTimeout(()=>checkCardsUrl(false),2500);
   if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
   dailyBackup();
   irPara('pgHome');
@@ -1051,13 +1052,22 @@ function defaultCardsUrl(){ try{ return new URL('../nosso-territorio-cartoes/',l
 function cardsUrl(){ let u=(DB.cfg.cartoesUrl||'').trim()||defaultCardsUrl(); if(!/^https?:\/\//i.test(u)) u='https://'+u; u=u.replace(/index\.html?$/i,''); if(!/[\/?#]$/.test(u)&&!u.includes('?')) u+='/'; return u; }
 function qrName(k){ return (DB.t[k]&&DB.t[k].name)||area(k); }
 function cardLink(k){ const u=cardsUrl(); return u+(u.includes('?')?'&':'?')+'t='+(+k); }
+let CARDS_URL_OK=null;
+function setCardsStatus(msg,ok){ CARDS_URL_OK=ok; const e=$('cardsUrlStatus'); e.textContent=msg; e.style.color=ok===true?'var(--acc)':ok===false?'var(--red)':'var(--muted)'; }
+async function verifyCardsUrl(u){ try{ const r=await fetch(u+'manifest.json',{cache:'no-store'}); if(!r.ok) return false; const j=await r.json(); return /cart/i.test((j.name||'')+(j.short_name||'')); }catch(e){ return null; } }
+async function checkCardsUrl(manual){ if(!navigator.onLine){ setCardsStatus('Sem internet para verificar o endereço.',null); return; } const cur=cardsUrl(); setCardsStatus('Verificando '+cur+' …',null); let ok=await verifyCardsUrl(cur); if(ok){ setCardsStatus('✓ Endereço confirmado: '+cur,true); return; } if(ok===null){ setCardsStatus('Não deu para verificar '+cur+' (sem resposta).',null); return; }
+  // procura entre os sites do mesmo usuário no GitHub Pages
+  const m=location.host.match(/^([^.]+)\.github\.io$/i); if(m){ setCardsStatus('Endereço não encontrado. Procurando o app Cartões nos seus sites do GitHub…',null); try{ const r=await fetch(`https://api.github.com/users/${m[1]}/repos?per_page=100&sort=updated`); const repos=(await r.json()).filter(x=>x.has_pages&&!location.pathname.toLowerCase().startsWith('/'+x.name.toLowerCase()+'/')); const me=location.pathname.split('/')[1]; for(const rp of repos){ if(rp.name===me) continue; const u=`https://${location.host}/${rp.name}/`; if(await verifyCardsUrl(u)){ DB.cfg.cartoesUrl=u; touchCfg(); $('cfgCartoesUrl').value=u; setCardsStatus('✓ App Cartões localizado e salvo: '+u,true); if(manual) toast('Endereço do app Cartões localizado'); return; } } }catch(e){} }
+  setCardsStatus('✗ Não encontrei o app Cartões em '+cur+'. Digite acima o endereço onde ele está publicado (ex.: https://usuario.github.io/NOME-DO-REPOSITORIO/).',false); }
+$('btnCardsUrl').addEventListener('click',()=>{ const v=$('cfgCartoesUrl').value.trim(); if(v!==(DB.cfg.cartoesUrl||'')){ DB.cfg.cartoesUrl=v; touchCfg(); } checkCardsUrl(true); });
+$('cfgCartoesUrl').addEventListener('change',()=>{ const v=$('cfgCartoesUrl').value.trim(); if(v!==(DB.cfg.cartoesUrl||'')){ DB.cfg.cartoesUrl=v; touchCfg(); } checkCardsUrl(false); });
 function shQrOn(){ try{ return localStorage.getItem('nt_shqr')!=='0'; }catch(e){ return true; } }
 function qrMatrix(text){ const q=qrcode(0,'M'); q.addData(text); q.make(); return q; }
 function drawQr(g,q,x,y,size){ const n=q.getModuleCount(),m=Math.max(1,Math.floor(size/n)),off=Math.floor((size-m*n)/2); x=Math.round(x)+off; y=Math.round(y)+off; g.fillStyle='#000'; for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(q.isDark(r,c)) g.fillRect(x+c*m,y+r*m,m,m); }
 function qrPoster(k,px){ px=px||900; const link=cardLink(k),q=qrMatrix(link); const c=document.createElement('canvas'); const pad=Math.round(px*.1),qs=px-pad*2,foot=Math.round(px*.3); c.width=px; c.height=px+foot; const g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,c.width,c.height); drawQr(g,q,pad,pad,qs);
   g.fillStyle='#0B4A34'; g.fillRect(0,px,px,foot); g.textAlign='center'; g.textBaseline='middle'; g.fillStyle='#fff'; g.font=`800 ${Math.round(foot*.26)}px Manrope,sans-serif`; g.fillText(`TERRITÓRIO ${pad2(k)}`,px/2,px+foot*.26); g.font=`600 ${Math.round(foot*.16)}px Manrope,sans-serif`; g.fillText(qrName(k),px/2,px+foot*.55,px-pad*2); g.font=`500 ${Math.round(foot*.11)}px Manrope,sans-serif`; g.fillStyle='rgba(255,255,255,.75)'; g.fillText((DB.cfg.congName?DB.cfg.congName+' · ':'')+'Cartões de casas · aponte a câmera',px/2,px+foot*.82,px-pad*2); return c; }
 let qrCanvas=null;
-function openQr(k){ qrCanvas=qrPoster(k); $('qrT').textContent=`QR Code · Território ${pad2(k)}`; $('qrImg').src=qrCanvas.toDataURL('image/png'); $('qrLink').textContent=cardLink(k); openModal('qrmodal'); }
+function openQr(k){ if(CARDS_URL_OK===false) toast('Atenção: o endereço do app Cartões não foi confirmado (veja Configurações)'); qrCanvas=qrPoster(k); $('qrT').textContent=`QR Code · Território ${pad2(k)}`; $('qrImg').src=qrCanvas.toDataURL('image/png'); $('qrLink').textContent=cardLink(k); openModal('qrmodal'); }
 $('btnQr').addEventListener('click',()=>{ if(cur) openQr(cur); });
 $('qrClose').addEventListener('click',()=>closeModal('qrmodal'));
 $('qrCopy').addEventListener('click',async()=>{ try{ await navigator.clipboard.writeText($('qrLink').textContent); toast('Link copiado'); }catch(e){ toast('Não foi possível copiar'); } });
@@ -1067,7 +1077,7 @@ $('qrWa').addEventListener('click',async()=>{ const txt=`*TERRITÓRIO ${pad2(cur
 let qrMm=30;
 $('qrSize').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ qrMm=+b.dataset.mm; $('qrSize').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); qrpInfo(); }));
 function qrpInfo(){ const cols=Math.floor(190/(qrMm+14)); const per=cols*Math.floor(277/(qrMm+20)); $('qrpInfo').textContent=`${KEYS.length} etiquetas · ${cols} por linha · cerca de ${Math.ceil(KEYS.length/per)} folha${Math.ceil(KEYS.length/per)>1?'s':''} A4 · destino: ${cardsUrl()}`; }
-$('btnQrPrint').addEventListener('click',()=>{ qrpInfo(); openModal('qrpmodal'); });
+$('btnQrPrint').addEventListener('click',()=>{ qrpInfo(); if(CARDS_URL_OK===false) toast('Atenção: o endereço do app Cartões não foi confirmado'); openModal('qrpmodal'); });
 $('qrpClose').addEventListener('click',()=>closeModal('qrpmodal'));
 function qrDataUrl(k,px){ const q=qrMatrix(cardLink(k)); const c=document.createElement('canvas'); c.width=c.height=px; const g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,px,px); const qz=Math.round(px*.06); drawQr(g,q,qz,qz,px-qz*2); return c.toDataURL('image/png'); }
 $('qrpPrint').addEventListener('click',()=>{ const box=$('qrprint'); box.style.setProperty('--qrmm',qrMm+'mm'); box.style.setProperty('--qrcell',(qrMm+14)+'mm'); box.innerHTML=KEYS.map(k=>`<div class="qrtag"><img src="${qrDataUrl(k,300)}" alt=""><b>Território ${pad2(k)}</b><small>${esc(qrName(k))}</small><i>${esc(DB.cfg.congName||'')}${DB.cfg.congName?' · ':''}cartões de casas</i></div>`).join(''); document.body.classList.add('printing'); const done=()=>{ document.body.classList.remove('printing'); box.innerHTML=''; removeEventListener('afterprint',done); }; addEventListener('afterprint',done); setTimeout(()=>{ try{ window.print(); }catch(e){ done(); toast('Este navegador não imprime daqui — use "Baixar folhas"'); } },60); setTimeout(()=>{ if(document.body.classList.contains('printing')&&!document.hidden) done(); },120000); });

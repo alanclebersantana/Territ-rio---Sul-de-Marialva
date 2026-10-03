@@ -45,15 +45,25 @@ O publicador só abre o app: ele entra anonimamente, lê `config/padrao` e já m
 
 Cada território tem um QR Code que abre o app Cartões **direto naquele território** (link `.../nosso-territorio-cartoes/?t=12`), já na tela de escolher a quadra e a letra (A/B) e ver os números das casas. Não precisa de login nem de código.
 
-- **Endereço do app Cartões**: em Configurações → App Cartões, confira o campo "Endereço do app Cartões". Se ficar vazio, o app usa o endereço ao lado do principal (`https://SEU-USUARIO.github.io/nosso-territorio-cartoes/`). Preencha só se o app Cartões estiver em outro endereço.
+- **Endereço do app Cartões**: em Configurações → App Cartões há o campo "Endereço do app Cartões" e o botão "Localizar / verificar endereço". Ao abrir, o app confere o endereço configurado; se não encontrar o app Cartões lá, procura sozinho entre os seus sites do GitHub Pages (pela API pública do GitHub) e salva o endereço certo — aparece "✓ Endereço confirmado". Se o app Cartões estiver num domínio próprio, digite o endereço no campo (ex.: `https://usuario.github.io/NOME-DO-REPOSITORIO/`).
 - **Para colar atrás do cartão físico**: Configurações → App Cartões → "QR Codes para imprimir". Escolha o tamanho (25 a 40 mm) e use "Imprimir / salvar PDF" (impressão do celular ou do computador) ou "Baixar folhas (PNG)" (imagens A4, uma etiqueta por território, com número e nome, com linha de corte).
 - **Um território só**: abra o território no mapa → botão "QR Code" → "Enviar por WhatsApp", "Copiar link" ou "Baixar imagem".
 - **Ao compartilhar com o dirigente**: no "Compartilhar no WhatsApp" do território há a chave "Enviar junto o QR Code dos cartões" (ligada por padrão): vai o recorte do mapa + a imagem do QR Code + o texto, que já inclui o link dos cartões.
 - Se o app Cartões já estiver instalado no celular do dirigente, o Android abre o link dentro do app; se não, abre no navegador (e dá para instalar de lá).
 
+## Se o app Cartões ficar em "Não foi possível conectar"
+
+A partir da 2.1.1 a mensagem diz a causa e mostra o código entre parênteses. As causas comuns:
+
+- `auth/admin-restricted-operation` ou `auth/operation-not-allowed`: o provedor **Anônimo** não está ativado (Firebase → Authentication → Sign-in method → Adicionar provedor → Anônimo → Ativar).
+- `permission-denied`: as regras do `firestore.rules` não foram publicadas (Firestore Database → Regras → colar → Publicar).
+- `sem-padrao`: o app principal ainda não registrou a congregação. Abra o app principal logado uma vez; em Configurações → App Cartões deve aparecer "Conectado".
+- `unavailable`: o navegador não alcançou `firestore.googleapis.com` (bloqueador de anúncios, antivírus, rede corporativa). Teste em outra rede ou no celular.
+- `not-found` / `failed-precondition`: o banco Firestore ainda não foi criado no projeto `nosso-territorio-d1b6b`.
+
 ## Se a tela de login não responder
 
-A tela de login mostra uma linha de status embaixo ("versão 2.1.0 · pronto para entrar"). Se aparecer "os scripts do Firebase não carregaram", é internet/bloqueio; se aparecer "o Firebase ainda não respondeu", feche e abra de novo. Qualquer erro de JavaScript ou do Firestore aparece numa faixa vermelha na parte de baixo da tela — mande esse texto para diagnóstico.
+A tela de login mostra uma linha de status embaixo ("versão 2.1.1 · pronto para entrar"). Se aparecer "os scripts do Firebase não carregaram", é internet/bloqueio; se aparecer "o Firebase ainda não respondeu", feche e abra de novo. Qualquer erro de JavaScript ou do Firestore aparece numa faixa vermelha na parte de baixo da tela — mande esse texto para diagnóstico.
 
 Se o app novo foi publicado no mesmo endereço do antigo: o service worker antigo pode entregar a página velha até a segunda abertura. Abra o endereço no navegador, recarregue duas vezes, ou desinstale o PWA antigo e instale de novo. Abrir o `index.html` direto do arquivo (file://) não funciona: use sempre o endereço do GitHub Pages.
 

@@ -2,7 +2,7 @@
    Página: rede primeiro (atualizações aparecem sem limpar cache), com cache como reserva.
    Resto (mapa, geometria, ícones, scripts do Firebase): cache primeiro.
    Suba a versão em CACHE sempre que trocar mapa-base.webp, mapa-geo.json ou os ícones. */
-const CACHE = 'nosso-territorio-v2.1.0';
+const CACHE = 'nosso-territorio-v2.1.1';
 const SHELL = ['./index.html', './manifest.json', './mapa-base.webp', './mapa-geo.json', './casas.json', './icon-192.png', './icon-512.png', './icon-32.png'];
 const EXT = [
   'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
