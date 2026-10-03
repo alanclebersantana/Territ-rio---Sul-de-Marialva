@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signed() { return request.auth != null; }
+    function isOwner(c) { return signed() && request.auth.uid == c; }
+    function isAnon() { return signed() && request.auth.token.firebase.sign_in_provider == 'anonymous'; }
+
+    // Dados do app anterior (só para a migração automática na primeira abertura)
+    match /usuarios/{uid} { allow read, write: if isOwner(uid); }
+
+    // Código da congregação: quem está logado (inclusive anônimo, no app Cartões) pode conferir;
+    // só a conta administradora cria/apaga o seu
+    match /codigos/{code} {
+      allow read: if signed();
+      allow create, update: if signed() && request.resource.data.cong == request.auth.uid;
+      allow delete: if signed() && resource.data.cong == request.auth.uid;
+    }
+
+    match /congregacoes/{c} {
+      allow read, write: if isOwner(c);
+      match /backups/{b} { allow read, write: if isOwner(c); }
+      // nomes dos territórios para o app Cartões
+      match /publico/{d} { allow read: if signed(); allow write: if isOwner(c); }
+      // cartões de casas: administrador faz tudo; publicadores (anônimos) só marcam, datam, acrescentam/corrigem/removem casas
+      match /cartoes/{id} {
+        allow read: if signed();
+        allow create, delete: if isOwner(c);
+        allow update: if isOwner(c) ||
+          (isAnon() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['c', 'v', 'extra', 'ren', 'del', 'ts']));
+      }
+    }
+  }
+}
