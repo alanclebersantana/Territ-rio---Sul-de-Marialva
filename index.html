@@ -453,6 +453,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
       </button>
       <button class="btn link" id="btnAuthForgot" type="button" style="justify-content:center;background:transparent;border-color:transparent;color:var(--muted)">Esqueci minha senha</button>
     </div>
+    <p class="note" id="authStatus" style="margin-top:14px">carregando…</p>
   </div>
 </section>
 
@@ -580,9 +581,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
     <p class="note" style="text-align:left">"Ajustar quadras" abre o mapa: toque no território e use Juntar, Dividir, Renumerar ou Mover nas quadras que o reconhecimento não acertou.</p>
   </div>
   <div class="card"><h3>App Cartões <span class="n">para os publicadores</span></h3>
-    <div class="codebox"><span style="flex:1;min-width:0"><b id="cfgCode" style="font-size:18px;letter-spacing:.14em">—</b><small style="display:block;font-size:11px;color:var(--muted)">código que os publicadores digitam uma vez no app Cartões</small></span><button class="btn" id="btnCodeCopy">Copiar</button></span></div>
-    <div class="acts" style="margin-top:10px"><button class="btn" id="btnCodeNew">Gerar novo código</button><button class="btn" id="btnCardsSeed">Importar cartões do PDF</button></div>
-    <p class="note" style="text-align:left" id="cardsInfo">Quem tem o código marca casas sem login. Gerar um novo código desconecta todos os aparelhos.</p>
+    <p style="margin:0 0 8px;font-size:13.5px;color:var(--muted)" id="cardsLink">—</p>
+    <div class="acts"><button class="btn" id="btnCardsSeed">Importar cartões do PDF</button></div>
+    <p class="note" style="text-align:left" id="cardsInfo">Os publicadores só instalam o app Cartões e abrem: ele se conecta sozinho a esta congregação, sem login e sem código.</p>
   </div>
   <div class="card"><h3>Aparência</h3><div class="seg" id="cfgTheme"><button data-t="light">Claro</button><button data-t="dark">Escuro</button><button data-t="auto">Do sistema</button></div></div>
   <div class="card"><h3>Backup automático</h3>
@@ -657,7 +658,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
    cartões de casas em congregacoes/{uid}/cartoes, cópias em .../backups.
    ===================================================================== */
 'use strict';
-const APP_VER='2.0.0';
+const APP_VER='2.0.1';
 const $=id=>document.getElementById(id);
 const pad2=k=>String(k).padStart(2,'0');
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -673,8 +674,15 @@ const PERIODOS=['Manhã','Tarde','Noite'];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 let tT=null; function toast(m){ const e=$('toast'); e.textContent=m; e.classList.add('show'); clearTimeout(tT); tT=setTimeout(()=>e.classList.remove('show'),2200); }
 
+/* ---------- diagnóstico: qualquer erro aparece na tela, em vez de travar em silêncio ---------- */
+function diag(msg){ let d=$('diagbar'); if(!d){ d=document.createElement('div'); d.id='diagbar'; d.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;z-index:9999;background:#3A1F1D;color:#FBE6E4;font:600 12px/1.4 system-ui,sans-serif;padding:10px 12px;border-radius:12px;max-height:40vh;overflow:auto;white-space:pre-wrap'; d.addEventListener('click',()=>d.remove()); document.body.appendChild(d); } d.textContent=msg+'\n(toque para fechar)'; }
+addEventListener('error',e=>diag('Erro: '+(e.message||e)+(e.filename?' ('+e.filename.split('/').pop()+':'+e.lineno+')':'')));
+addEventListener('unhandledrejection',e=>{ const r=e.reason; const code=r&&r.code; if(code&&/permission-denied|unavailable|failed-precondition|unauthenticated/.test(code)) diag('Firebase: '+code+' — '+(r.message||'')); });
+$('authStatus').textContent='versão '+APP_VER+(typeof firebase==='undefined'?' · os scripts do Firebase não carregaram: verifique a internet e recarregue':' · conectando ao Firebase…');
+if(typeof firebase==='undefined') throw new Error('Firebase não carregou (sem internet ou bloqueado)');
+
 /* ---------- Firebase ---------- */
-const firebaseConfig={apiKey:"AIzaSyDJweO0BT4AIObdWG76m0gPYSHNqaNa8og",authDomain:territorio-c58d6.firebaseapp.com",projectId:"territorio-c58d6",storageBucket:"territorio-c58d6.firebasestorage.app",messagingSenderId:"713476454195",appId:"1:713476454195:web:5bd2c605d0447a79c2f046"};
+const firebaseConfig={apiKey:"AIzaSyBaV6MtnGA3O0MnAD2ahQtNrpdsrcLnS_Y",authDomain:"nosso-territorio-d1b6b.firebaseapp.com",projectId:"nosso-territorio-d1b6b",storageBucket:"nosso-territorio-d1b6b.firebasestorage.app",messagingSenderId:"702151659736",appId:"1:702151659736:web:60683540519543d54207ad"};
 firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth(), dbFS=firebase.firestore();
 const FP=firebase.firestore.FieldPath, FV=firebase.firestore.FieldValue;
@@ -687,9 +695,9 @@ let KEY='nt_dados';
    estando na base ou na sentinela, e pushes feitos enquanto um back() ainda está em voo ficam na fila:
    assim a posição do history nunca "deriva" e o app nunca fecha com o gesto de voltar. */
 const NAV={stack:[],ignore:0,backs:0,queue:0};
-function navPush(type,close){ NAV.stack.push({type,close}); if(NAV.backs>0) NAV.queue++; else history.pushState({n:1},''); }
+function navPush(type,close){ NAV.stack.push({type,close}); if(NAV.backs>0) NAV.queue++; else { try{ history.pushState({n:1},''); }catch(e){} } }
 function navClose(type){ const top=NAV.stack[NAV.stack.length-1]; if(top&&top.type===type){ NAV.stack.pop(); if(history.state&&history.state.n>0&&NAV.backs===0){ NAV.ignore++; NAV.backs++; history.back(); } else if(NAV.queue>0){ NAV.queue--; } } }
-history.replaceState({n:-1},''); history.pushState({n:0},'');
+try{ history.replaceState({n:-1},''); history.pushState({n:0},''); }catch(e){}
 addEventListener('popstate',()=>{
   if(NAV.ignore){ NAV.ignore--; NAV.backs=Math.max(0,NAV.backs-1); while(NAV.queue>0){ NAV.queue--; history.pushState({n:1},''); } return; }
   const e=NAV.stack.pop();
@@ -706,10 +714,13 @@ $('authForm').addEventListener('submit',async e=>{ e.preventDefault(); authErrSh
 $('btnAuthGoogle').addEventListener('click',async()=>{ authErrShow(''); const prov=new firebase.auth.GoogleAuthProvider(); const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone; try{ if(standalone) await auth.signInWithRedirect(prov); else await auth.signInWithPopup(prov); }catch(err){ authErrShow(authErrMsg(err.code)); } });
 $('btnAuthForgot').addEventListener('click',async()=>{ const email=$('authEmail').value.trim(); if(!email){ authErrShow('Informe seu e-mail acima e toque de novo.'); return; } try{ await auth.sendPasswordResetEmail(email); authErrShow('E-mail de redefinição enviado.',true); }catch(err){ authErrShow(authErrMsg(err.code)); } });
 $('btnLogout').addEventListener('click',async()=>{ if(await ask('Sair da sua conta neste aparelho?',[['Sair','danger'],['Cancelar','']])!==0) return; try{ await auth.signOut(); }catch(e){} location.reload(); });
+let authSeen=false;
 auth.onAuthStateChanged(async u=>{
-  if(u){ $('authgate').classList.add('hide'); $('appRoot').classList.remove('hide'); fillAccount(u); await boot(u); }
-  else { user=null; $('appRoot').classList.add('hide'); $('authgate').classList.remove('hide'); }
+  authSeen=true;
+  if(u){ $('authStatus').textContent='entrando como '+(u.email||'conta')+'…'; $('authgate').classList.add('hide'); $('appRoot').classList.remove('hide'); fillAccount(u); try{ await boot(u); }catch(e){ diag('Erro ao iniciar: '+(e&&e.message||e)); } }
+  else { user=null; $('appRoot').classList.add('hide'); $('authgate').classList.remove('hide'); $('authStatus').textContent='versão '+APP_VER+' · pronto para entrar'; }
 });
+setTimeout(()=>{ if(!authSeen) $('authStatus').textContent='versão '+APP_VER+' · o Firebase ainda não respondeu. Verifique a internet; se persistir, feche e abra o app de novo.'; },8000);
 function fillAccount(u){ const name=u.displayName||(u.email?u.email.split('@')[0]:'Conta'); $('acctName').textContent=name; $('acctEmail').textContent=u.email||''; $('acctAvatar').textContent=initials(name); }
 function cloudStatus(t,ok){ const d=$('acctDot'); d.textContent=t; d.style.color=ok?'var(--acc)':'var(--muted)'; }
 
@@ -721,7 +732,7 @@ function normT(s){ s=s||{}; return {name:s.name||'',resp:s.resp||'',assign:s.ass
   pend:Array.isArray(s.pend)?s.pend.filter(x=>Number.isInteger(x)):[], hist:Array.isArray(s.hist)?s.hist.filter(h=>h&&h.start&&h.end&&h.end>=h.start).map(h=>({start:h.start,end:h.end,ts:h.ts||0})):[], ts:s.ts||0}; }
 function normalize(d){
   d=d||{}; const t={}; Object.keys(d.t||{}).forEach(k=>{ t[String(+k)]=normT(d.t[k]); });
-  const cfg=Object.assign({congName:'',city:'',total:Object.keys(t).length||20,codigo:'',bkDaily:true,bkChange:true,cartoesSeed:false,ts:0},d.cfg||{});
+  const cfg=Object.assign({congName:'',city:'',total:Object.keys(t).length||20,bkDaily:true,bkChange:true,cartoesSeed:false,ts:0},d.cfg||{});
   const items=x=>(x&&Array.isArray(x.items))?{items:x.items,ts:x.ts||0}:{items:[],ts:0};
   return {v:4,t,p:items(d.p),s:items(d.s),cfg,qover:d.qover||{}};
 }
@@ -801,7 +812,7 @@ async function boot(u){
   if(legacy) toast('Dados do app anterior importados');
   pushToCloud(true); attachListener(); publicoDirty=true; pushPublico();
   initMap(); refreshAll(); applyTheme(themePref()); markTheme();
-  loadCards(); ensureCode();
+  loadCards(); ensureDefault();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
   dailyBackup();
   irPara('pgHome');
@@ -1054,7 +1065,7 @@ function cmMarks(c,h){ return (c.c||{})[h]||[0,0,0]; }
 function cardProg(c){ const hs=cmHouses(c); const d=hs.filter(h=>cmMarks(c,h).some(Boolean)).length; return {n:hs.length,d}; }
 function terrCasas(k){ let n=0,d=0,ts=0; cardsOf(k).forEach(c=>{ const p=cardProg(c); n+=p.n; d+=p.d; ts=Math.max(ts,c.ts||0); }); return {n,d,ts}; }
 function ago(ts){ const m=Math.round((Date.now()-ts)/60000); if(m<1) return 'agora'; if(m<60) return `há ${m} min`; const h=Math.round(m/60); if(h<48) return `há ${h} h`; return `há ${Math.round(h/24)} dias`; }
-function loadCards(){ if(cardsUnsub) cardsUnsub(); cardsUnsub=congRef.collection('cartoes').onSnapshot(snap=>{ CARDS={}; snap.forEach(d=>{ CARDS[d.id]=Object.assign({id:d.id},d.data()); }); if(cur) renderCasas(); if(curPage==='pgHome') renderHome(); if(cmK&&$('cardmodal').classList.contains('open')) renderCm(); $('cardsInfo').textContent=`${Object.keys(CARDS).length} cartões na nuvem. Quem tem o código marca casas sem login; gerar um novo código desconecta todos os aparelhos.`; },()=>{}); }
+function loadCards(){ if(cardsUnsub) cardsUnsub(); cardsUnsub=congRef.collection('cartoes').onSnapshot(snap=>{ CARDS={}; snap.forEach(d=>{ CARDS[d.id]=Object.assign({id:d.id},d.data()); }); if(cur) renderCasas(); if(curPage==='pgHome') renderHome(); if(cmK&&$('cardmodal').classList.contains('open')) renderCm(); $('cardsInfo').textContent=`${Object.keys(CARDS).length} cartões na nuvem. Os publicadores só instalam o app Cartões e abrem: ele se conecta sozinho a esta congregação.`; },()=>{}); }
 async function seedCards(force){ if(!CASAS_SEED) { toast('casas.json não encontrado'); return; } if(!force&&Object.keys(CARDS).length) return; const docs=[]; Object.keys(CASAS_SEED).forEach(m=>{ CASAS_SEED[m].quadras.forEach(q=>{ docs.push({id:cardId(m,q.id),data:{mapa:String(+m),quadra:q.id,casas:q.casas,extra:[],del:[],ren:{},c:{},v:[{d:'',p:''},{d:'',p:''},{d:'',p:''}],ts:0}}); }); }); for(let i=0;i<docs.length;i+=400){ const b=dbFS.batch(); docs.slice(i,i+400).forEach(d=>{ if(!CARDS[d.id]) b.set(congRef.collection('cartoes').doc(d.id),d.data); }); await b.commit(); } DB.cfg.cartoesSeed=true; touchCfg(); toast(`${docs.length} cartões importados do PDF`); }
 $('btnCardsSeed').addEventListener('click',async()=>{ const n=Object.keys(CARDS).length; if(await ask(n?`Já existem ${n} cartões na nuvem. Importar do PDF cria apenas os que ainda não existem. Continuar?`:'Importar os cartões de quadra e números de casas do PDF "Número das Casas"?',[['Importar','primary'],['Cancelar','']])!==0) return; await seedCards(true); });
 function cardWrite(id,obj){ return congRef.collection('cartoes').doc(id).set(obj,{merge:true}).catch(()=>{}); }
@@ -1086,14 +1097,11 @@ $('cmZero').addEventListener('click',async()=>{ const c=CARDS[cmK],p=cardProg(c)
 $('cmDelCard').addEventListener('click',async()=>{ const c=CARDS[cmK],p=cardProg(c); if(await ask(`Remover o cartão da quadra ${c.quadra} do território ${pad2(c.mapa)}? ${p.n?`As ${p.n} casas e suas marcações serão apagadas, aqui e no app Cartões.`:''} Tem certeza?`,[['Sim, remover o cartão','danger'],['Cancelar','']])!==0) return; delete CARDS[cmK]; congRef.collection('cartoes').doc(cmK).delete().catch(()=>{}); closeModal('cardmodal'); renderCasas(); toast('Cartão removido'); });
 $('cmClose').addEventListener('click',()=>closeModal('cardmodal'));
 
-/* ---------- dados públicos para o app Cartões + código ---------- */
+/* ---------- dados públicos para o app Cartões ---------- */
 let publicoDirty=false, pubT=null;
 function pushPublico(){ if(!user) return; clearTimeout(pubT); pubT=setTimeout(()=>{ if(!publicoDirty) return; publicoDirty=false; const nomes={}; KEYS.forEach(k=>{ nomes[k]={n:DB.t[k].name||'',a:area(k)}; }); congRef.collection('publico').doc('dados').set({nomes,cong:DB.cfg.congName||'',city:DB.cfg.city||'',ts:Date.now()}).catch(()=>{ publicoDirty=true; }); },1500); }
-function genCode(){ const base=(DB.cfg.congName||'TER').replace(/congrega[çc][ãa]o/i,'').trim().split(/\s+/).filter(Boolean).map(w=>w[0]).join('').toUpperCase().slice(0,3)||'TER'; const al='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<6;i++) s+=al[Math.floor(Math.random()*al.length)]; return `${base}-${s.slice(0,3)}-${s.slice(3)}`; }
-async function ensureCode(){ if(!DB.cfg.codigo){ await setCode(genCode()); } $('cfgCode').textContent=DB.cfg.codigo; }
-async function setCode(code){ const old=DB.cfg.codigo; DB.cfg.codigo=code; touchCfg(); try{ await dbFS.collection('codigos').doc(code).set({cong:user.uid,ts:Date.now()}); if(old&&old!==code) await dbFS.collection('codigos').doc(old).delete(); }catch(e){} $('cfgCode').textContent=code; }
-$('btnCodeCopy').addEventListener('click',async()=>{ try{ await navigator.clipboard.writeText(DB.cfg.codigo); toast('Código copiado'); }catch(e){ toast(DB.cfg.codigo); } });
-$('btnCodeNew').addEventListener('click',async()=>{ if(await ask('Gerar um novo código? Todos os aparelhos dos publicadores vão pedir o código de novo.',[['Gerar novo','danger'],['Cancelar','']])!==0) return; await setCode(genCode()); toast('Novo código: '+DB.cfg.codigo); });
+// O app Cartões abre direto: ele lê config/padrao para saber qual congregação usar.
+async function ensureDefault(){ try{ const ref=dbFS.collection('config').doc('padrao'); const d=await ref.get(); if(!d.exists||d.data().cong===user.uid){ await ref.set({cong:user.uid,nome:DB.cfg.congName||'',ts:Date.now()}); $('cardsLink').textContent='Conectado: o app Cartões abre direto nesta congregação.'; } else { $('cardsLink').textContent='Atenção: o app Cartões está apontando para outra conta ('+(d.data().nome||d.data().cong)+').'; } }catch(e){ $('cardsLink').textContent='Não foi possível registrar esta congregação para o app Cartões (confira as regras do Firestore).'; } }
 
 /* ---------- backups (congregacoes/{uid}/backups) ---------- */
 let bkChangeT=null;
@@ -1107,11 +1115,11 @@ $('swBkDaily').addEventListener('click',()=>{ DB.cfg.bkDaily=!DB.cfg.bkDaily; to
 $('btnExport').addEventListener('click',()=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([snapshotJSON()],{type:'application/json'})); a.download=`nosso-territorio-${today()}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); toast('Arquivo salvo'); });
 $('btnImport').addEventListener('click',()=>$('fileIn').click());
 $('fileIn').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=async()=>{ try{ const d=JSON.parse(r.result); if(!d||!d.t) throw 0; if(await ask('Restaurar este arquivo? Os dados atuais serão substituídos (uma cópia deles é guardada antes).',[['Restaurar','primary'],['Cancelar','']])!==0) return; await writeBackup('antes de restaurar'); importData(d); toast('Restaurado'); }catch(err){ toast('Arquivo não reconhecido'); } $('fileIn').value=''; }; r.readAsText(f); });
-function importData(d){ const nd=normalize(d); nd.cfg.codigo=DB.cfg.codigo; nd.cfg.ts=Date.now(); Object.keys(nd.t).forEach(k=>{ nd.t[k].ts=Date.now(); }); nd.p.ts=Date.now(); nd.s.ts=Date.now(); Object.keys(nd.qover).forEach(k=>nd.qover[k].ts=Date.now()); DB=nd; rebuildKeys(); buildQ(); Store.save(DB); pushToCloud(true); publicoDirty=true; pushPublico(); refreshAll(); }
+function importData(d){ const nd=normalize(d); nd.cfg.ts=Date.now(); Object.keys(nd.t).forEach(k=>{ nd.t[k].ts=Date.now(); }); nd.p.ts=Date.now(); nd.s.ts=Date.now(); Object.keys(nd.qover).forEach(k=>nd.qover[k].ts=Date.now()); DB=nd; rebuildKeys(); buildQ(); Store.save(DB); pushToCloud(true); publicoDirty=true; pushPublico(); refreshAll(); }
 
 /* ---------- configurações ---------- */
-function fillCfg(){ $('cfgCong').value=DB.cfg.congName||''; $('cfgCity').value=DB.cfg.city||''; $('cfgTotal').value=DB.cfg.total||KEYS.length; $('cfgCode').textContent=DB.cfg.codigo||'—'; $('mapInfo').textContent=GEO?`Mapa Geral.pdf · ${MAPK.length} territórios desenhados · ${MAPK.reduce((a,k)=>a+(Q[k]||[]).length,0)} quadras (${Object.keys(DB.qover).length} com ajustes salvos).`:'Mapa não carregado.'; $('cfgAbout').textContent=`${DB.cfg.congName?'Territórios da '+DB.cfg.congName:'Nosso Território'} · ${KEYS.length} territórios · versão ${APP_VER}`; }
-$('btnCfgSave').addEventListener('click',()=>{ const n=Math.max(1,Math.min(500,parseInt($('cfgTotal').value,10)||KEYS.length)); DB.cfg.congName=$('cfgCong').value.trim(); DB.cfg.city=$('cfgCity').value.trim(); DB.cfg.total=n; rebuildKeys(); touchCfg(); refreshAll(); fillCfg(); toast('Configurações salvas'); });
+function fillCfg(){ $('cfgCong').value=DB.cfg.congName||''; $('cfgCity').value=DB.cfg.city||''; $('cfgTotal').value=DB.cfg.total||KEYS.length; $('mapInfo').textContent=GEO?`Mapa Geral.pdf · ${MAPK.length} territórios desenhados · ${MAPK.reduce((a,k)=>a+(Q[k]||[]).length,0)} quadras (${Object.keys(DB.qover).length} com ajustes salvos).`:'Mapa não carregado.'; $('cfgAbout').textContent=`${DB.cfg.congName?'Territórios da '+DB.cfg.congName:'Nosso Território'} · ${KEYS.length} territórios · versão ${APP_VER}`; }
+$('btnCfgSave').addEventListener('click',()=>{ const n=Math.max(1,Math.min(500,parseInt($('cfgTotal').value,10)||KEYS.length)); DB.cfg.congName=$('cfgCong').value.trim(); DB.cfg.city=$('cfgCity').value.trim(); DB.cfg.total=n; rebuildKeys(); touchCfg(); refreshAll(); fillCfg(); ensureDefault(); toast('Configurações salvas'); });
 const TKEY='nt_tema';
 function themePref(){ try{ return localStorage.getItem(TKEY)||'auto'; }catch(e){ return 'auto'; } }
 function applyTheme(p){ if(p==='auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme',p); try{ localStorage.setItem(TKEY,p); }catch(e){} }

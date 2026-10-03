@@ -8,12 +8,12 @@ service cloud.firestore {
     // Dados do app anterior (só para a migração automática na primeira abertura)
     match /usuarios/{uid} { allow read, write: if isOwner(uid); }
 
-    // Código da congregação: quem está logado (inclusive anônimo, no app Cartões) pode conferir;
-    // só a conta administradora cria/apaga o seu
-    match /codigos/{code} {
+    // Congregação padrão do app Cartões: qualquer usuário (inclusive anônimo) lê; só a conta
+    // administradora registra a sua, e ninguém sobrescreve a de outra conta
+    match /config/padrao {
       allow read: if signed();
-      allow create, update: if signed() && request.resource.data.cong == request.auth.uid;
-      allow delete: if signed() && resource.data.cong == request.auth.uid;
+      allow write: if signed() && request.resource.data.cong == request.auth.uid
+                   && (resource == null || resource.data.cong == request.auth.uid);
     }
 
     match /congregacoes/{c} {

@@ -22,11 +22,12 @@ Os endereços ficarão como `https://SEU-USUARIO.github.io/nosso-territorio/` e 
 
 No console do projeto `nosso-territorio-d1b6b`:
 
-1. **Authentication → Sign-in method**: além de E-mail/senha e Google (já ativos), **ative "Anônimo"**. É assim que o app Cartões escreve sem login.
+1. **Authentication → Sign-in method**: além de E-mail/senha e Google (já ativos), **ative "Anônimo"**. É assim que o app Cartões escreve sem login e sem código.
 2. **Authentication → Settings → Authorized domains**: confirme que `SEU-USUARIO.github.io` está na lista.
 3. **Firestore → Rules**: cole o conteúdo de `nosso-territorio/firestore.rules` e publique. As regras garantem que:
    - só a sua conta lê e escreve os dados da congregação (`congregacoes/{seu uid}`), os backups e o documento público;
-   - quem tem o código (usuários anônimos do app Cartões) só pode marcar casas, datar visitas e acrescentar/corrigir/remover números — não cria nem apaga cartões, nem toca nos territórios.
+   - os publicadores (usuários anônimos do app Cartões) só podem marcar casas, datar visitas e acrescentar/corrigir/remover números — não criam nem apagam cartões, nem tocam nos territórios;
+   - o documento `config/padrao` diz ao app Cartões qual congregação usar; só a conta administradora o grava.
 4. Não é preciso criar índices: as consultas usam um único campo.
 
 ## 3. Primeira abertura do app principal
@@ -34,11 +35,17 @@ No console do projeto `nosso-territorio-d1b6b`:
 1. Entre com a mesma conta do app anterior. Se não houver dados novos ainda, o app **migra sozinho** o documento antigo (`usuarios/{uid}`) ou o `localStorage` da versão anterior. Também dá para usar "Restaurar de arquivo" em Configurações com um `nosso-territorio-AAAA-MM-DD.json`.
 2. Em Configurações, confira nome, cidade e quantidade de territórios (58).
 3. Em **App Cartões → "Importar cartões do PDF"**: cria na nuvem os 403 cartões de quadra com os 3.828 números de casa extraídos do "Número das Casas.pdf" (arquivo `casas.json`). Só cria os que ainda não existem, então pode repetir sem risco.
-4. Copie o **código da congregação** (gerado automaticamente; "Gerar novo código" invalida os aparelhos antigos) e passe aos publicadores.
+4. Ao abrir, o app registra sozinho a sua conta como a congregação do app Cartões (`config/padrao`). Em Configurações → App Cartões aparece "Conectado".
 
 ## 4. Primeira abertura do app Cartões
 
-O publicador digita o código uma vez. Daí em diante o app abre direto, mesmo sem internet; as marcações ficam no aparelho e sobem sozinhas quando houver sinal (é a persistência offline do próprio Firestore, com fila de escrita).
+O publicador só abre o app: ele entra anonimamente, lê `config/padrao` e já mostra os territórios. Precisa de internet apenas nessa primeira abertura; depois abre mesmo sem sinal, e as marcações ficam no aparelho e sobem sozinhas quando houver conexão (persistência offline do próprio Firestore, com fila de escrita).
+
+## Se a tela de login não responder
+
+A tela de login mostra uma linha de status embaixo ("versão 2.0.1 · pronto para entrar"). Se aparecer "os scripts do Firebase não carregaram", é internet/bloqueio; se aparecer "o Firebase ainda não respondeu", feche e abra de novo. Qualquer erro de JavaScript ou do Firestore aparece numa faixa vermelha na parte de baixo da tela — mande esse texto para diagnóstico.
+
+Se o app novo foi publicado no mesmo endereço do antigo: o service worker antigo pode entregar a página velha até a segunda abertura. Abra o endereço no navegador, recarregue duas vezes, ou desinstale o PWA antigo e instale de novo. Abrir o `index.html` direto do arquivo (file://) não funciona: use sempre o endereço do GitHub Pages.
 
 ## 5. Arquivos de dados do app principal
 
@@ -54,7 +61,7 @@ O service worker busca `index.html` sempre pela rede primeiro, então basta faze
 ## Estrutura no Firestore
 
 ```
-codigos/{CODIGO}                     { cong: <uid do administrador> }
+config/padrao                        { cong: <uid do administrador>, nome }   ← lido pelo app Cartões
 congregacoes/{uid}                   { v, t{...}, p{items}, s{items}, cfg{...}, qover{...} }
 congregacoes/{uid}/publico/dados     { nomes{k:{n,a}}, cong, city }      ← lido pelo app Cartões
 congregacoes/{uid}/cartoes/{m_q}     { mapa, quadra, casas[], extra[], del[], ren{}, c{casa:[0|1,0|1,0|1]}, v[{d,p}x3], ts }
