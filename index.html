@@ -14,7 +14,7 @@
 <title>Nosso Território</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Manrope:wght@500;600;700;800&family=Roboto+Condensed:wght@700&display=swap" rel="stylesheet">
 <style>
 /* Layout: o mapa é a tela. Tudo o mais flutua por cima dele — barra superior, chips de status,
    botões de zoom, ficha do território como gaveta inferior e abas na base. */
@@ -442,6 +442,11 @@ input[type=url]{width:100%;background:var(--surface);border:1px solid var(--line
   .qrtag small{display:block;font-size:7.5pt;color:#333;line-height:1.2}
   .qrtag i{display:block;font-style:normal;font-size:6pt;color:#777;margin-top:1mm}
 }
+/* nomes das ruas (vetor) */
+#lbl{pointer-events:none}
+#lbl text{font-family:'Roboto Condensed','Arial Narrow',var(--font);font-weight:700;fill:#0F1613;stroke:#fff;stroke-linejoin:round;paint-order:stroke;letter-spacing:.01em}
+#lbl text.p{fill:#2B3A33;font-weight:800;letter-spacing:.03em}
+#lbl.hid{display:none}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -481,7 +486,7 @@ input[type=url]{width:100%;background:var(--surface);border:1px solid var(--line
     <img id="base" alt="Mapa geral da congregação" src="mapa-base.webp">
     <svg id="ov" xmlns="http://www.w3.org/2000/svg">
       <defs><pattern id="hatch" width="13" height="13" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="13" height="13" fill="rgba(217,83,74,.16)"/><line x1="0" y1="0" x2="0" y2="13" stroke="#D9534A" stroke-width="3.6"/></pattern></defs>
-      <g id="terrs"></g><g id="quads"></g><g id="pins"></g>
+      <g id="terrs"></g><g id="quads"></g><g id="lbl"></g><g id="pins"></g>
       <line id="cutline" class="hide"/><circle id="cutpt" r="7" class="hide"/>
       <g id="me" class="hide"><circle r="22" fill="rgba(36,118,255,.18)"><animate attributeName="r" values="14;30;14" dur="2.4s" repeatCount="indefinite"/></circle><circle r="7" fill="#2476FF" stroke="#fff" stroke-width="2.5"/></g>
     </svg>
@@ -595,14 +600,17 @@ input[type=url]{width:100%;background:var(--surface);border:1px solid var(--line
   </div>
   <div class="card"><h3>Mapa</h3>
     <p style="margin:0 0 10px;font-size:13.5px;color:var(--muted)" id="mapInfo">—</p>
-    <div class="acts"><button class="btn" id="btnMapEdit">Ajustar quadras</button></div>
+    <p style="margin:10px 0 6px;font-size:12px;font-weight:700;color:var(--muted)">Tamanho dos nomes das ruas</p>
+    <div class="seg" id="cfgRuas"><button data-r="n">Normal</button><button data-r="g" aria-pressed="true">Grande</button><button data-r="x">Muito grande</button></div>
+    <p class="note" style="text-align:left;margin-top:8px">Os nomes das ruas são desenhados em vetor, por cima do mapa: ficam nítidos em qualquer zoom e também na imagem enviada pelo WhatsApp.</p>
+    <div class="acts" style="margin-top:10px"><button class="btn" id="btnMapEdit">Ajustar quadras</button></div>
     <p class="note" style="text-align:left">"Ajustar quadras" abre o mapa: toque no território e use Juntar, Dividir, Renumerar ou Mover nas quadras que o reconhecimento não acertou.</p>
   </div>
   <div class="card"><h3>App Cartões <span class="n">para os publicadores</span></h3>
     <p style="margin:0 0 8px;font-size:13.5px;color:var(--muted)" id="cardsLink">—</p>
     <div class="fields"><label class="f full"><span>Endereço do app Cartões (para os QR Codes)</span><input type="url" id="cfgCartoesUrl" placeholder="https://SEU-USUARIO.github.io/nosso-territorio-cartoes/" autocomplete="off" spellcheck="false"></label></div>
     <p style="margin:6px 0 8px;font-size:12.5px;color:var(--muted)" id="cardsUrlStatus">—</p>
-    <div class="acts"><button class="btn" id="btnCardsUrl">Localizar / verificar endereço</button><button class="btn" id="btnCardsSeed">Importar cartões do PDF</button><button class="btn" id="btnQrPrint"><svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/></svg>QR Codes para imprimir</button></div>
+    <div class="acts"><button class="btn" id="btnCardsUrl">Localizar / verificar endereço</button><button class="btn" id="btnCardsSeed">Importar / atualizar cartões do PDF</button><button class="btn" id="btnQrPrint"><svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/></svg>QR Codes para imprimir</button></div>
     <p class="note" style="text-align:left" id="cardsInfo">Os publicadores só instalam o app Cartões e abrem: ele se conecta sozinho a esta congregação, sem login e sem código.</p>
   </div>
   <div class="card"><h3>Aparência</h3><div class="seg" id="cfgTheme"><button data-t="light">Claro</button><button data-t="dark">Escuro</button><button data-t="auto">Do sistema</button></div></div>
@@ -698,7 +706,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
    cartões de casas em congregacoes/{uid}/cartoes, cópias em .../backups.
    ===================================================================== */
 'use strict';
-const APP_VER='2.1.1';
+const APP_VER='2.2.0';
 const $=id=>document.getElementById(id);
 const pad2=k=>String(k).padStart(2,'0');
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -765,7 +773,7 @@ function fillAccount(u){ const name=u.displayName||(u.email?u.email.split('@')[0
 function cloudStatus(t,ok){ const d=$('acctDot'); d.textContent=t; d.style.color=ok?'var(--acc)':'var(--muted)'; }
 
 /* ---------- dados ---------- */
-let DB=null, GEO=null, CASAS_SEED=null, MAPK=[], KEYS=[], Q={};
+let DB=null, GEO=null, CASAS_SEED=null, RUAS=null, MAPK=[], KEYS=[], Q={};
 const dirty=new Set();
 function blankT(){ return {name:'',resp:'',assign:'',start:'',end:'',stop:'',notes:'',started:false,tipo:'urbano',distrito:'',refs:'',pend:[],hist:[],ts:0}; }
 function normT(s){ s=s||{}; return {name:s.name||'',resp:s.resp||'',assign:s.assign||'',start:s.start||'',end:s.end||'',stop:s.stop||'',notes:s.notes||'',started:!!s.started||!!s.start,tipo:s.tipo||'urbano',distrito:s.distrito||'',refs:s.refs||'',
@@ -834,8 +842,8 @@ addEventListener('online',()=>{ if(user) pushToCloud(); });
 
 /* ---------- inicialização ---------- */
 async function loadStatic(){
-  const [g,c]=await Promise.all([fetch('mapa-geo.json').then(r=>r.json()).catch(()=>null), fetch('casas.json').then(r=>r.json()).catch(()=>null)]);
-  GEO=g; CASAS_SEED=c; MAPK=GEO?Object.keys(GEO.t).sort((a,b)=>+a-+b):[];
+  const [g,c,r]=await Promise.all([fetch('mapa-geo.json').then(r=>r.json()).catch(()=>null), fetch('casas.json').then(r=>r.json()).catch(()=>null), fetch('mapa-ruas.json').then(r=>r.json()).catch(()=>null)]);
+  GEO=g; CASAS_SEED=c; RUAS=r&&r.l||[]; MAPK=GEO?Object.keys(GEO.t).sort((a,b)=>+a-+b):[];
   if(GEO){ $('base').style.width=GEO.w+'px'; $('base').style.height=GEO.h+'px'; const ov=$('ov'); ov.setAttribute('viewBox',`0 0 ${GEO.w} ${GEO.h}`); ov.style.width=GEO.w+'px'; ov.style.height=GEO.h+'px'; }
 }
 async function boot(u){
@@ -860,7 +868,11 @@ async function boot(u){
 }
 
 /* ---------- quadras (geometria + ajustes salvos) ---------- */
-function buildQ(){ Q={}; MAPK.forEach(k=>{ const ov=DB.qover[k]; let q=null; if(ov&&typeof ov.q==='string'){ try{ q=JSON.parse(ov.q); }catch(e){} } Q[k]= Array.isArray(q)? q : GEO.t[k].q.map(poly=>[poly]); }); if(terrsBuilt) MAPK.forEach(redrawTerrQs); }
+function hullOf(pts){ const P=[...new Set(pts.map(p=>p[0]+','+p[1]))].map(s=>s.split(',').map(Number)).sort((a,b)=>a[0]-b[0]||a[1]-b[1]); if(P.length<3) return P; const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]); const lo=[]; for(const p of P){ while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0) lo.pop(); lo.push(p); } const up=[]; for(let i=P.length-1;i>=0;i--){ const p=P[i]; while(up.length>=2&&cr(up[up.length-2],up[up.length-1],p)<=0) up.pop(); up.push(p); } return lo.slice(0,-1).concat(up.slice(0,-1)); }
+function ringArea(r){ let a=0; for(let i=0;i<r.length;i++){ const p=r[i],q=r[(i+1)%r.length]; a+=p[0]*q[1]-q[0]*p[1]; } return Math.abs(a)/2; }
+/* remove da quadra o contorno do número do território que o traçado do mapa deixou dentro do polígono */
+function cleanRing(r,l){ if(!l||r.length<8) return r; const inbox=r.filter(p=>Math.abs(p[0]-l[0])<=38&&Math.abs(p[1]-l[1])<=30); if(inbox.length<4) return r; const h=hullOf(r); const keep=r.filter(p=>!(Math.abs(p[0]-l[0])<=38&&Math.abs(p[1]-l[1])<=30&&Math.min(...h.map(v=>Math.hypot(p[0]-v[0],p[1]-v[1])))>2.5)); return keep.length>=4&&ringArea(keep)>=.9*ringArea(r)?keep:r; }
+function buildQ(){ Q={}; MAPK.forEach(k=>{ const ov=DB.qover[k]; let q=null; if(ov&&typeof ov.q==='string'){ try{ q=JSON.parse(ov.q); }catch(e){} } const l=GEO.t[k].l; Q[k]= Array.isArray(q)? q.map(parts=>parts.map(r=>cleanRing(r,l))) : GEO.t[k].q.map(poly=>[cleanRing(poly,l)]); }); if(terrsBuilt) MAPK.forEach(redrawTerrQs); }
 const P=pts=>'M'+pts.map(p=>p[0]+' '+p[1]).join('L')+'Z';
 const Pm=parts=>parts.map(P).join('');
 function qCentroid(parts){ let x=0,y=0,n=0; parts.forEach(pl=>pl.forEach(p=>{x+=p[0];y+=p[1];n++})); return [x/n,y/n]; }
@@ -873,7 +885,8 @@ function initMap(){
   const terrs=$('terrs');
   MAPK.forEach(k=>{ const g=GEO.t[k], el=document.createElementNS('http://www.w3.org/2000/svg','g'); el.setAttribute('class','terr'); el.dataset.k=k;
     el.innerHTML=`<path class="hit" d="${P(g.o)}"/><g class="qs">${Q[k].map(q=>`<path d="${Pm(q)}"/>`).join('')}</g><g class="badge" transform="translate(${g.l[0]},${g.l[1]+2})"><circle r="27"/><text>${pad2(k)}</text></g>`; terrs.appendChild(el); });
-  initialView(); drawPins();
+  drawLabels(); initialView(); drawPins();
+  if(document.fonts&&document.fonts.load) document.fonts.load("700 12px 'Roboto Condensed'").catch(()=>{});
 }
 function redrawTerrQs(k){ const el=document.querySelector(`#terrs [data-k="${k}"] .qs`); if(!el||!Q[k]) return; el.innerHTML=Q[k].map(q=>`<path d="${Pm(q)}"/>`).join(''); }
 function paintStatus(){ MAPK.forEach(k=>{ const el=document.querySelector(`#terrs [data-k="${k}"]`); if(el) el.dataset.st=stOf(k); }); applyFilter(); }
@@ -886,7 +899,7 @@ function counts(){ let n=0,w=0,d=0; KEYS.forEach(k=>{ const s=stOf(k); if(s==='d
 const vp=$('vp'), world=$('world');
 let T={x:0,y:0,s:.3}, minS=.05, maxS=5;
 const W=()=>GEO?GEO.w:1, H=()=>GEO?GEO.h:1;
-function apply(){ world.style.transform=`translate(${T.x}px,${T.y}px) scale(${T.s})`; }
+function apply(){ world.style.transform=`translate(${T.x}px,${T.y}px) scale(${T.s})`; $('lbl').classList.toggle('hid',T.s*5.6*ruasFactor()<5); }
 let BOUNDS=null;
 function bounds(){ if(BOUNDS) return BOUNDS; let x0=1e9,y0=1e9,x1=0,y1=0; MAPK.forEach(k=>{ const b=GEO.t[k].bb; x0=Math.min(x0,b[0][0]); y0=Math.min(y0,b[0][1]); x1=Math.max(x1,b[1][0]); y1=Math.max(y1,b[1][1]); }); return BOUNDS=[Math.max(0,x0-60),Math.max(0,y0-60),Math.min(W(),x1+60),Math.min(H(),y1+60)]; }
 function updateMinS(){ const b=bounds(); minS=Math.max(vp.clientWidth/(b[2]-b[0]), vp.clientHeight/(b[3]-b[1])); }
@@ -1038,7 +1051,7 @@ function splitPoly(poly,p1,p2){ const side=p=>(p2[0]-p1[0])*(p[1]-p1[1])-(p2[1]-
 function shareText(k){ const t=DB.t[k]; const pend=t.pend.map(i=>'Quadra '+(i+1)).join(', '); return `*TERRITÓRIO ${pad2(k)}${t.name?' · '+t.name:''}*\n${area(k)} · ${rotulo[stOf(k)]}${t.resp?'\nResponsável: '+t.resp:''}${t.start?'\nInício: '+br(t.start):''}${t.end?' · Conclusão: '+br(t.end):''}${t.refs?'\nReferências: '+t.refs:''}${pend?'\nFaltou: '+pend:''}${t.stop?'\nOnde paramos: '+t.stop:''}${t.notes?'\nObs.: '+t.notes:''}\nMaps: https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery(k))}\nCartões de casas (QR): ${cardLink(k)}`; }
 function shareImage(k){ const b=GEO.t[k].bb,pad=70; const x0=Math.max(0,b[0][0]-pad),y0=Math.max(0,b[0][1]-pad),x1=Math.min(W(),b[1][0]+pad),y1=Math.min(H(),b[1][1]+pad); const sc=Math.min(3,1080/(x1-x0)); const cw=Math.round((x1-x0)*sc),ch=Math.round((y1-y0)*sc),head=Math.round(cw*.11); const c=document.createElement('canvas'); c.width=cw; c.height=ch+head; const g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,cw,ch+head); const img=$('base'); const nat=img.naturalWidth/W(); g.drawImage(img,x0*nat,y0*nat,(x1-x0)*nat,(y1-y0)*nat,0,head,cw,ch); g.save(); g.translate(0,head); g.scale(sc,sc); g.translate(-x0,-y0);
   Q[k].forEach((q,i)=>{ const path=new Path2D(Pm(q)); const pend=DB.t[k].pend.includes(i); g.fillStyle=pend?'rgba(217,83,74,.28)':'rgba(255,255,255,0)'; g.fill(path); g.lineWidth=4/sc; g.strokeStyle=pend?'#D9534A':'#0F1613'; g.lineJoin='round'; g.stroke(path); if(pend){ g.save(); g.clip(path); g.strokeStyle='#D9534A'; g.lineWidth=2.5/sc; for(let d=-(y1-y0);d<(x1-x0)+(y1-y0);d+=16/sc){ g.beginPath(); g.moveTo(x0+d,y0); g.lineTo(x0+d-(y1-y0),y1); g.stroke(); } g.restore(); } const cc=qCentroid(q); g.font=`800 ${34/sc}px Manrope,sans-serif`; g.textAlign='center'; g.textBaseline='middle'; g.lineWidth=6/sc; g.strokeStyle='#fff'; g.strokeText(String(i+1),cc[0],cc[1]); g.fillStyle='#0F1613'; g.fillText(String(i+1),cc[0],cc[1]); });
-  g.restore(); g.fillStyle='#0B4A34'; g.fillRect(0,0,cw,head); g.fillStyle='#fff'; g.textBaseline='middle'; g.textAlign='left'; g.font=`700 ${Math.round(head*.5)}px Caveat,cursive`; g.fillText(pad2(k),Math.round(head*.3),head/2); g.font=`800 ${Math.round(head*.26)}px Manrope,sans-serif`; g.fillText(nome(k),Math.round(head*1.1),head*.38); g.font=`600 ${Math.round(head*.19)}px Manrope,sans-serif`; g.fillStyle='rgba(255,255,255,.8)'; const t=DB.t[k]; g.fillText(`${area(k)} · ${rotulo[stOf(k)]}${t.resp?' · '+t.resp:''}${t.pend.length?' · '+t.pend.length+' quadra'+(t.pend.length>1?'s':'')+' pendente'+(t.pend.length>1?'s':''):''}`,Math.round(head*1.1),head*.7); g.textAlign='right'; g.fillText(DB.cfg.congName||'',cw-Math.round(head*.3),head*.38); return c; }
+  paintLabels(g,x0,y0,x1,y1); g.restore(); g.fillStyle='#0B4A34'; g.fillRect(0,0,cw,head); g.fillStyle='#fff'; g.textBaseline='middle'; g.textAlign='left'; g.font=`700 ${Math.round(head*.5)}px Caveat,cursive`; g.fillText(pad2(k),Math.round(head*.3),head/2); g.font=`800 ${Math.round(head*.26)}px Manrope,sans-serif`; g.fillText(nome(k),Math.round(head*1.1),head*.38); g.font=`600 ${Math.round(head*.19)}px Manrope,sans-serif`; g.fillStyle='rgba(255,255,255,.8)'; const t=DB.t[k]; g.fillText(`${area(k)} · ${rotulo[stOf(k)]}${t.resp?' · '+t.resp:''}${t.pend.length?' · '+t.pend.length+' quadra'+(t.pend.length>1?'s':'')+' pendente'+(t.pend.length>1?'s':''):''}`,Math.round(head*1.1),head*.7); g.textAlign='right'; g.fillText(DB.cfg.congName||'',cw-Math.round(head*.3),head*.38); return c; }
 let shCanvas=null;
 $('btnShare').addEventListener('click',()=>{ if(!noMapa(cur)) return; shCanvas=shareImage(cur); $('shImg').src=shCanvas.toDataURL('image/png'); $('shTxt').textContent=shareText(cur); $('swShQr').setAttribute('aria-checked',String(shQrOn())); openModal('shmodal'); });
 $('shClose').addEventListener('click',()=>closeModal('shmodal'));
@@ -1083,6 +1096,18 @@ function qrDataUrl(k,px){ const q=qrMatrix(cardLink(k)); const c=document.create
 $('qrpPrint').addEventListener('click',()=>{ const box=$('qrprint'); box.style.setProperty('--qrmm',qrMm+'mm'); box.style.setProperty('--qrcell',(qrMm+14)+'mm'); box.innerHTML=KEYS.map(k=>`<div class="qrtag"><img src="${qrDataUrl(k,300)}" alt=""><b>Território ${pad2(k)}</b><small>${esc(qrName(k))}</small><i>${esc(DB.cfg.congName||'')}${DB.cfg.congName?' · ':''}cartões de casas</i></div>`).join(''); document.body.classList.add('printing'); const done=()=>{ document.body.classList.remove('printing'); box.innerHTML=''; removeEventListener('afterprint',done); }; addEventListener('afterprint',done); setTimeout(()=>{ try{ window.print(); }catch(e){ done(); toast('Este navegador não imprime daqui — use "Baixar folhas"'); } },60); setTimeout(()=>{ if(document.body.classList.contains('printing')&&!document.hidden) done(); },120000); });
 function qrSheets(){ const dpi=200,mm=dpi/25.4,Wp=Math.round(210*mm),Hp=Math.round(297*mm),mg=Math.round(10*mm); const cw=Math.round((qrMm+14)*mm),ch=Math.round((qrMm+20)*mm),qs=Math.round(qrMm*mm); const cols=Math.max(1,Math.floor((Wp-2*mg)/cw)),rows=Math.max(1,Math.floor((Hp-2*mg)/ch)),per=cols*rows; const sheets=[]; for(let i=0;i<KEYS.length;i+=per){ const c=document.createElement('canvas'); c.width=Wp; c.height=Hp; const g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,Wp,Hp); KEYS.slice(i,i+per).forEach((k,j)=>{ const x=mg+(j%cols)*cw,y=mg+Math.floor(j/cols)*ch; g.setLineDash([6,6]); g.strokeStyle='#999'; g.lineWidth=1.5; g.strokeRect(x+4,y+4,cw-8,ch-8); g.setLineDash([]); drawQr(g,qrMatrix(cardLink(k)),x+(cw-qs)/2,y+Math.round(3*mm),qs); g.fillStyle='#000'; g.textAlign='center'; g.textBaseline='alphabetic'; g.font=`800 ${Math.round(4*mm)}px Manrope,sans-serif`; g.fillText(`Território ${pad2(k)}`,x+cw/2,y+Math.round(3*mm)+qs+Math.round(5*mm)); g.font=`600 ${Math.round(2.7*mm)}px Manrope,sans-serif`; g.fillStyle='#333'; g.fillText(qrName(k),x+cw/2,y+Math.round(3*mm)+qs+Math.round(9*mm),cw-Math.round(6*mm)); g.font=`500 ${Math.round(2.1*mm)}px Manrope,sans-serif`; g.fillStyle='#777'; g.fillText((DB.cfg.congName?DB.cfg.congName+' · ':'')+'cartões de casas',x+cw/2,y+Math.round(3*mm)+qs+Math.round(13*mm),cw-Math.round(6*mm)); }); sheets.push(c); } return sheets; }
 $('qrpPng').addEventListener('click',async()=>{ toast('Gerando folhas…'); await new Promise(r=>setTimeout(r,30)); const sheets=qrSheets(); const files=[]; for(let i=0;i<sheets.length;i++){ const blob=await new Promise(r=>sheets[i].toBlob(r,'image/png')); files.push(new File([blob],`qr-territorios-folha-${i+1}.png`,{type:'image/png'})); } if(navigator.share&&navigator.canShare&&navigator.canShare({files})){ try{ await navigator.share({files,title:'QR Codes dos territórios'}); return; }catch(e){ if(e&&e.name==='AbortError') return; } } for(let i=0;i<files.length;i++){ const a=document.createElement('a'); a.href=URL.createObjectURL(files[i]); a.download=files[i].name; document.body.appendChild(a); a.click(); a.remove(); await new Promise(r=>setTimeout(r,400)); } toast(`${files.length} folha${files.length>1?'s':''} gerada${files.length>1?'s':''}`); });
+
+/* ---------- nomes das ruas em vetor ---------- */
+const RUAS_F={n:1.2,g:1.5,x:1.9}; const RUAS_W={n:1.05,g:1.12,x:1.3};
+function ruasAllow(w){ return Math.max(w*RUAS_W[ruasMode()],w+6); }
+function ruasMode(){ try{ return RUAS_F[localStorage.getItem('nt_ruas')]?localStorage.getItem('nt_ruas'):'g'; }catch(e){ return 'g'; } }
+function ruasFactor(){ return RUAS_F[ruasMode()]; }
+const LBL_FONT="'Roboto Condensed','Arial Narrow',Manrope,sans-serif";
+function lblSize(l){ const f=ruasFactor(); return l[4]*(l[6]==='p'?Math.min(f,1.35):f); }
+function fitLabels(){ const g=$('lbl'); if(!g) return; const ts=g.querySelectorAll('text'); ts.forEach((t,i)=>{ const l=RUAS[i]; if(!l) return; const allow=ruasAllow(l[5]); let S=lblSize(l); let nat; try{ nat=t.getComputedTextLength(); }catch(e){ return; } if(!nat) return; if(nat>allow){ const S2=Math.max(l[4]*1.02,S*allow/nat); if(S2<S){ t.setAttribute('font-size',S2.toFixed(2)); t.setAttribute('stroke-width',(S2*.22).toFixed(2)); nat=nat*S2/S; S=S2; } if(nat>allow*1.03){ t.setAttribute('textLength',allow.toFixed(1)); t.setAttribute('lengthAdjust','spacingAndGlyphs'); } } }); }
+function drawLabels(){ const g=$('lbl'); if(!RUAS||!g) return; g.innerHTML=RUAS.map(l=>{ const [t,x,y,a,sz,w,k]=l; const S=lblSize(l); return `<text class="${k}" transform="translate(${x},${y}) rotate(${a})" x="${(w/2).toFixed(1)}" text-anchor="middle" font-size="${S.toFixed(2)}" stroke-width="${(S*.22).toFixed(2)}">${esc(t)}</text>`; }).join(''); fitLabels(); if(document.fonts&&document.fonts.load) document.fonts.load("700 12px 'Roboto Condensed'").then(fitLabels).catch(()=>{}); $('cfgRuas').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.r===ruasMode()))); apply(); }
+$('cfgRuas').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ try{ localStorage.setItem('nt_ruas',b.dataset.r); }catch(e){} drawLabels(); toast('Nomes das ruas: '+b.textContent.toLowerCase()); }));
+function paintLabels(g,x0,y0,x1,y1){ if(!RUAS) return; g.save(); g.textAlign='center'; g.textBaseline='alphabetic'; g.lineJoin='round'; RUAS.forEach(l=>{ const [t,x,y,a,sz,w,k]=l; if(x<x0-120||x>x1+120||y<y0-120||y>y1+120) return; let S=lblSize(l); const allow=ruasAllow(w); g.font=`${k==='p'?800:700} ${S}px ${LBL_FONT}`; let nat=g.measureText(t).width; if(nat>allow){ const S2=Math.max(sz*1.02,S*allow/nat); if(S2<S){ S=S2; g.font=`${k==='p'?800:700} ${S}px ${LBL_FONT}`; nat=g.measureText(t).width; } } g.save(); g.translate(x,y); g.rotate(a*Math.PI/180); if(nat>allow*1.03){ g.translate(w/2,0); g.scale(allow/nat,1); g.translate(-w/2,0); } g.lineWidth=S*.22; g.strokeStyle='#fff'; g.strokeText(t,w/2,0); g.fillStyle=k==='p'?'#2B3A33':'#0F1613'; g.fillText(t,w/2,0); g.restore(); }); g.restore(); }
 
 /* ---------- busca ---------- */
 $('q').addEventListener('input',renderSearch); $('q').addEventListener('focus',renderSearch);
@@ -1144,8 +1169,8 @@ function cardProg(c){ const hs=cmHouses(c); const d=hs.filter(h=>cmMarks(c,h).so
 function terrCasas(k){ let n=0,d=0,ts=0; cardsOf(k).forEach(c=>{ const p=cardProg(c); n+=p.n; d+=p.d; ts=Math.max(ts,c.ts||0); }); return {n,d,ts}; }
 function ago(ts){ const m=Math.round((Date.now()-ts)/60000); if(m<1) return 'agora'; if(m<60) return `há ${m} min`; const h=Math.round(m/60); if(h<48) return `há ${h} h`; return `há ${Math.round(h/24)} dias`; }
 function loadCards(){ if(cardsUnsub) cardsUnsub(); cardsUnsub=congRef.collection('cartoes').onSnapshot(snap=>{ CARDS={}; snap.forEach(d=>{ CARDS[d.id]=Object.assign({id:d.id},d.data()); }); if(cur) renderCasas(); if(curPage==='pgHome') renderHome(); if(cmK&&$('cardmodal').classList.contains('open')) renderCm(); $('cardsInfo').textContent=`${Object.keys(CARDS).length} cartões na nuvem. Os publicadores só instalam o app Cartões e abrem: ele se conecta sozinho a esta congregação.`; },()=>{}); }
-async function seedCards(force){ if(!CASAS_SEED) { toast('casas.json não encontrado'); return; } if(!force&&Object.keys(CARDS).length) return; const docs=[]; Object.keys(CASAS_SEED).forEach(m=>{ CASAS_SEED[m].quadras.forEach(q=>{ docs.push({id:cardId(m,q.id),data:{mapa:String(+m),quadra:q.id,casas:q.casas,extra:[],del:[],ren:{},c:{},v:[{d:'',p:''},{d:'',p:''},{d:'',p:''}],ts:0}}); }); }); for(let i=0;i<docs.length;i+=400){ const b=dbFS.batch(); docs.slice(i,i+400).forEach(d=>{ if(!CARDS[d.id]) b.set(congRef.collection('cartoes').doc(d.id),d.data); }); await b.commit(); } DB.cfg.cartoesSeed=true; touchCfg(); toast(`${docs.length} cartões importados do PDF`); }
-$('btnCardsSeed').addEventListener('click',async()=>{ const n=Object.keys(CARDS).length; if(await ask(n?`Já existem ${n} cartões na nuvem. Importar do PDF cria apenas os que ainda não existem. Continuar?`:'Importar os cartões de quadra e números de casas do PDF "Número das Casas"?',[['Importar','primary'],['Cancelar','']])!==0) return; await seedCards(true); });
+async function seedCards(force){ if(!CASAS_SEED) { toast('casas.json não encontrado'); return; } if(!force&&Object.keys(CARDS).length) return; const docs=[]; Object.keys(CASAS_SEED).forEach(m=>{ CASAS_SEED[m].quadras.forEach(q=>{ docs.push({id:cardId(m,q.id),data:{mapa:String(+m),quadra:q.id,casas:q.casas,extra:[],del:[],ren:{},c:{},v:[{d:'',p:''},{d:'',p:''},{d:'',p:''}],ts:0}}); }); }); let created=0,updated=0; for(let i=0;i<docs.length;i+=400){ const b=dbFS.batch(); docs.slice(i,i+400).forEach(d=>{ const ex=CARDS[d.id]; if(!ex){ b.set(congRef.collection('cartoes').doc(d.id),d.data); created++; } else if(JSON.stringify(ex.casas||[])!==JSON.stringify(d.data.casas)){ b.update(congRef.collection('cartoes').doc(d.id),{casas:d.data.casas}); updated++; } }); if(created+updated) await b.commit(); } DB.cfg.cartoesSeed=true; touchCfg(); toast(created||updated?`${created} ${created===1?'cartão criado':'cartões criados'} · ${updated} ${updated===1?'atualizado':'atualizados'} (${docs.length} no PDF)`:'Os cartões já estão iguais ao PDF'); }
+$('btnCardsSeed').addEventListener('click',async()=>{ const n=Object.keys(CARDS).length; if(await ask(n?`Já existem ${n} cartões na nuvem. Importar do PDF cria os que faltam e atualiza a lista de casas dos que mudaram (marcações, visitas e números adicionados são mantidos). Continuar?`:'Importar os cartões de quadra e números de casas do PDF "Número das Casas"?',[['Importar','primary'],['Cancelar','']])!==0) return; await seedCards(true); });
 function cardWrite(id,obj){ return congRef.collection('cartoes').doc(id).set(obj,{merge:true}).catch(()=>{}); }
 function cardUpdate(id,fields){ return congRef.collection('cartoes').doc(id).update(fields).catch(()=>{}); }
 function renderCasas(){ const qs=cardsOf(cur); const tot=terrCasas(cur); $('casasSub').textContent=qs.length?(tot.ts?`atualizado ${ago(tot.ts)}`:'sem marcações ainda'):'sem cartões';

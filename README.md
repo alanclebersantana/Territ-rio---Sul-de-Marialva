@@ -1,6 +1,6 @@
-# Nosso Território 2.1 + Cartões
+# Nosso Território 2.2 + Cartões
 
-Dois PWAs em arquivo único para GitHub Pages, no mesmo projeto Firebase (`nosso-territorio-d1b6b`).
+Dois PWAs em arquivo único para GitHub Pages, no mesmo projeto Firebase (`nosso-territorio-5bc39`).
 
 | Pasta | O que é | Quem usa |
 |---|---|---|
@@ -20,7 +20,7 @@ Os endereços ficarão como `https://SEU-USUARIO.github.io/nosso-territorio/` e 
 
 ## 2. Configurar o Firebase (uma vez)
 
-No console do projeto `nosso-territorio-d1b6b`:
+No console do projeto `nosso-territorio-5bc39`:
 
 1. **Authentication → Sign-in method**: além de E-mail/senha e Google (já ativos), **ative "Anônimo"**. É assim que o app Cartões escreve sem login e sem código.
 2. **Authentication → Settings → Authorized domains**: confirme que `SEU-USUARIO.github.io` está na lista.
@@ -34,12 +34,16 @@ No console do projeto `nosso-territorio-d1b6b`:
 
 1. Entre com a mesma conta do app anterior. Se não houver dados novos ainda, o app **migra sozinho** o documento antigo (`usuarios/{uid}`) ou o `localStorage` da versão anterior. Também dá para usar "Restaurar de arquivo" em Configurações com um `nosso-territorio-AAAA-MM-DD.json`.
 2. Em Configurações, confira nome, cidade e quantidade de territórios (58).
-3. Em **App Cartões → "Importar cartões do PDF"**: cria na nuvem os 403 cartões de quadra com os 3.828 números de casa extraídos do "Número das Casas.pdf" (arquivo `casas.json`). Só cria os que ainda não existem, então pode repetir sem risco.
+3. Em **App Cartões → "Importar / atualizar cartões do PDF"**: cria na nuvem os 418 cartões de quadra com os 3.917 números de casa extraídos do "Número das Casas.pdf" (arquivo `casas.json`). Pode repetir sem risco: cria os que faltam e, nos que já existem, só troca a lista de números quando o `casas.json` mudou — marcações, visitas e números adicionados pelos publicadores são mantidos. Alguns territórios (5, 6, 7, 8, 10, 11, 17, 24, 30, 37, 38, 49, 52, 53) estão em branco no próprio PDF; os publicadores podem acrescentar os números pelo app.
 4. Ao abrir, o app registra sozinho a sua conta como a congregação do app Cartões (`config/padrao`). Em Configurações → App Cartões aparece "Conectado".
 
 ## 4. Primeira abertura do app Cartões
 
 O publicador só abre o app: ele entra anonimamente, lê `config/padrao` e já mostra os territórios. Precisa de internet apenas nessa primeira abertura; depois abre mesmo sem sinal, e as marcações ficam no aparelho e sobem sozinhas quando houver conexão (persistência offline do próprio Firestore, com fila de escrita).
+
+## Nomes das ruas (2.2)
+
+O `mapa-base.webp` agora é só o desenho (quadras, hachuras, ruas): todo o texto do PDF foi retirado dele. Os nomes das ruas e os demais rótulos vêm do arquivo `mapa-ruas.json` (544 textos com posição, ângulo e tamanho extraídos do próprio PDF) e são desenhados em vetor por cima do mapa, com contorno branco — ficam nítidos em qualquer zoom e também na imagem do "Compartilhar no WhatsApp". Em Configurações → Mapa dá para escolher o tamanho (Normal, Grande ou Muito grande; vale para a tela e para a imagem compartilhada). Os números dos territórios continuam sendo os círculos do app.
 
 ## 4b. QR Codes dos cartões (novo na 2.1)
 
@@ -59,11 +63,11 @@ A partir da 2.1.1 a mensagem diz a causa e mostra o código entre parênteses. A
 - `permission-denied`: as regras do `firestore.rules` não foram publicadas (Firestore Database → Regras → colar → Publicar).
 - `sem-padrao`: o app principal ainda não registrou a congregação. Abra o app principal logado uma vez; em Configurações → App Cartões deve aparecer "Conectado".
 - `unavailable`: o navegador não alcançou `firestore.googleapis.com` (bloqueador de anúncios, antivírus, rede corporativa). Teste em outra rede ou no celular.
-- `not-found` / `failed-precondition`: o banco Firestore ainda não foi criado no projeto `nosso-territorio-d1b6b`.
+- `not-found` / `failed-precondition`: o banco Firestore ainda não foi criado no projeto `nosso-territorio-5bc39`.
 
 ## Se a tela de login não responder
 
-A tela de login mostra uma linha de status embaixo ("versão 2.1.1 · pronto para entrar"). Se aparecer "os scripts do Firebase não carregaram", é internet/bloqueio; se aparecer "o Firebase ainda não respondeu", feche e abra de novo. Qualquer erro de JavaScript ou do Firestore aparece numa faixa vermelha na parte de baixo da tela — mande esse texto para diagnóstico.
+A tela de login mostra uma linha de status embaixo ("versão 2.2.0 · pronto para entrar"). Se aparecer "os scripts do Firebase não carregaram", é internet/bloqueio; se aparecer "o Firebase ainda não respondeu", feche e abra de novo. Qualquer erro de JavaScript ou do Firestore aparece numa faixa vermelha na parte de baixo da tela — mande esse texto para diagnóstico.
 
 Se o app novo foi publicado no mesmo endereço do antigo: o service worker antigo pode entregar a página velha até a segunda abertura. Abra o endereço no navegador, recarregue duas vezes, ou desinstale o PWA antigo e instale de novo. Abrir o `index.html` direto do arquivo (file://) não funciona: use sempre o endereço do GitHub Pages.
 
