@@ -1,11 +1,11 @@
-# Nosso Território 2.0 + Cartões
+# Nosso Território 2.1 + Cartões
 
 Dois PWAs em arquivo único para GitHub Pages, no mesmo projeto Firebase (`nosso-territorio-d1b6b`).
 
 | Pasta | O que é | Quem usa |
 |---|---|---|
 | `nosso-territorio/` | App principal: mapa com territórios e quadras clicáveis, ficha, programação de campo, pontos de saída, Início com ciclo de cobertura e painel de atenção, editor de quadras, cartões de casas, backups automáticos | Quem administra (login com e-mail/senha ou Google) |
-| `nosso-territorio-cartoes/` | App Cartões: marcação de casas por quadra, três visitas, funciona sem internet e sem login | Publicadores (entram com o código da congregação) |
+| `nosso-territorio-cartoes/` | App Cartões: marcação de casas por quadra, três visitas, funciona sem internet e sem login | Publicadores (abre sozinho, sem código; também pelo QR Code de cada território) |
 
 ## 1. Subir no GitHub
 
@@ -41,9 +41,19 @@ No console do projeto `nosso-territorio-d1b6b`:
 
 O publicador só abre o app: ele entra anonimamente, lê `config/padrao` e já mostra os territórios. Precisa de internet apenas nessa primeira abertura; depois abre mesmo sem sinal, e as marcações ficam no aparelho e sobem sozinhas quando houver conexão (persistência offline do próprio Firestore, com fila de escrita).
 
+## 4b. QR Codes dos cartões (novo na 2.1)
+
+Cada território tem um QR Code que abre o app Cartões **direto naquele território** (link `.../nosso-territorio-cartoes/?t=12`), já na tela de escolher a quadra e a letra (A/B) e ver os números das casas. Não precisa de login nem de código.
+
+- **Endereço do app Cartões**: em Configurações → App Cartões, confira o campo "Endereço do app Cartões". Se ficar vazio, o app usa o endereço ao lado do principal (`https://SEU-USUARIO.github.io/nosso-territorio-cartoes/`). Preencha só se o app Cartões estiver em outro endereço.
+- **Para colar atrás do cartão físico**: Configurações → App Cartões → "QR Codes para imprimir". Escolha o tamanho (25 a 40 mm) e use "Imprimir / salvar PDF" (impressão do celular ou do computador) ou "Baixar folhas (PNG)" (imagens A4, uma etiqueta por território, com número e nome, com linha de corte).
+- **Um território só**: abra o território no mapa → botão "QR Code" → "Enviar por WhatsApp", "Copiar link" ou "Baixar imagem".
+- **Ao compartilhar com o dirigente**: no "Compartilhar no WhatsApp" do território há a chave "Enviar junto o QR Code dos cartões" (ligada por padrão): vai o recorte do mapa + a imagem do QR Code + o texto, que já inclui o link dos cartões.
+- Se o app Cartões já estiver instalado no celular do dirigente, o Android abre o link dentro do app; se não, abre no navegador (e dá para instalar de lá).
+
 ## Se a tela de login não responder
 
-A tela de login mostra uma linha de status embaixo ("versão 2.0.1 · pronto para entrar"). Se aparecer "os scripts do Firebase não carregaram", é internet/bloqueio; se aparecer "o Firebase ainda não respondeu", feche e abra de novo. Qualquer erro de JavaScript ou do Firestore aparece numa faixa vermelha na parte de baixo da tela — mande esse texto para diagnóstico.
+A tela de login mostra uma linha de status embaixo ("versão 2.1.0 · pronto para entrar"). Se aparecer "os scripts do Firebase não carregaram", é internet/bloqueio; se aparecer "o Firebase ainda não respondeu", feche e abra de novo. Qualquer erro de JavaScript ou do Firestore aparece numa faixa vermelha na parte de baixo da tela — mande esse texto para diagnóstico.
 
 Se o app novo foi publicado no mesmo endereço do antigo: o service worker antigo pode entregar a página velha até a segunda abertura. Abra o endereço no navegador, recarregue duas vezes, ou desinstale o PWA antigo e instale de novo. Abrir o `index.html` direto do arquivo (file://) não funciona: use sempre o endereço do GitHub Pages.
 
