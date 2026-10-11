@@ -1,11 +1,11 @@
-# Nosso Território 2.5 + Cartões + Dirigente
+# Nosso Território 2.6 + Cartões + Dirigente
 
 Dois PWAs em arquivo único para GitHub Pages, no mesmo projeto Firebase (`nosso-territorio-5bc39`).
 
 | Pasta | O que é | Quem usa |
 |---|---|---|
 | `nosso-territorio/` | App principal: mapa com territórios e quadras clicáveis, ficha, programação de campo, pontos de saída, Início com ciclo de cobertura e painel de atenção, editor de quadras, cartões de casas, backups automáticos | Quem administra (login com e-mail/senha ou Google) |
-| `nosso-territorio-dirigente/` | App Dirigente: territórios designados, mapa, quadras pendentes e conclusão | Dirigentes de campo (entram com o código que o administrador envia) |
+| `nosso-territorio-dirigente/` | App Dirigente: território recebido por link, mapa, quadras feitas e conclusão | Dirigentes de campo (abrem o link que o administrador envia) |
 | `nosso-territorio-cartoes/` | App Cartões: marcação de casas por quadra, três visitas, funciona sem internet e sem login | Publicadores (abre sozinho, sem código; também pelo QR Code de cada território) |
 
 ## 1. Subir no GitHub
@@ -61,19 +61,13 @@ Cada app secundário tem a sua página instaladora na pasta `instalar/`, publica
 
 A página usa o manifest e o service worker do app, por isso o botão **"Instalar o app"** abre a janela de instalação nativa no Android/Chrome; no iPhone mostra o passo a passo do Safari. Tem também "Abrir o app no navegador", "Enviar pelo WhatsApp" e um QR Code da própria página. Em Configurações → Páginas de instalação, o app principal mostra os dois links prontos para enviar ou copiar.
 
-## App Dirigente (2.5)
+## App Dirigente (2.6)
 
-Terceiro app, na pasta `nosso-territorio-dirigente/` (publicado no Netlify, como o Cartões). Cada dirigente de campo entra com um **código de 6 números** e vê só os territórios designados a ele: abre o mapa do território (com as ruas nítidas e as quadras numeradas), toca nas quadras que ficaram pendentes e marca "Território concluído". Tudo chega ao app principal sozinho.
+Terceiro app, na pasta `nosso-territorio-dirigente/` (publicado em `https://dirigentesdecampo.netlify.app/`). Não tem login nem código: **cada território tem um link próprio**. O administrador manda o link pelo WhatsApp (ele vai no texto do "Compartilhar no WhatsApp" da ficha e também no botão "Dirigente" ao lado do QR Code); quem abre o link no celular passa a ter aquele território no app, com o mapa (ruas nítidas e quadras numeradas). Ele toca nas quadras **que já fez** (ficam verdes), e marca "Território concluído". As quadras que não foram tocadas chegam ao app principal como pendentes; a conclusão entra com a data e o nome do responsável no histórico.
 
-Como funciona no app principal (Configurações → App Dirigente):
+O link muda sempre que o território é iniciado de novo ("Iniciar território"), então um link antigo não reabre um ciclo novo. O app guarda no celular todos os links recebidos; "limpar os concluídos" tira da lista os já encerrados.
 
-1. Preencha "Endereço do app Dirigente" com o endereço onde você publicou o app (ex.: `https://dirigentedoterritorio.netlify.app/`) e salve.
-2. "+ Novo dirigente": informe o nome **exatamente como você escreve em "Responsável"** na ficha do território. O app gera o código.
-3. "Enviar" manda pelo WhatsApp uma mensagem com o endereço do app, o código e os territórios designados.
-4. Designar = pôr o nome dele em "Responsável" e iniciar o território. Enquanto o território não estiver concluído, ele aparece no app do dirigente.
-5. Quando o dirigente marca quadras pendentes ou conclui, o app principal aplica a mudança (quadras pendentes, data de conclusão, registro no histórico com o nome dele) e avisa com uma mensagem. Para desfazer, basta editar a ficha normalmente.
-
-Firestore: os documentos ficam em `congregacoes/{uid}/dirigentes/{código}` (gravados pelo app principal, só leitura para o dirigente) e `congregacoes/{uid}/retornos/{código_território}` (o dirigente, anônimo, grava apenas `pend`, `done`, `ts`). **Publique o `firestore.rules` novo**, que inclui essas duas coleções, e mantenha o provedor Anônimo ativo.
+Firestore: `congregacoes/{uid}/designados/{token}` (o app principal grava um documento por território com link; o dirigente, anônimo, só lê) e `congregacoes/{uid}/retornos/{token}` (o dirigente grava só `pend`, `done`, `ts`). **Publique o `firestore.rules` novo** e mantenha o provedor Anônimo ativo.
 
 ## App Cartões: edição protegida e dias sem casas (2.4)
 
@@ -113,7 +107,7 @@ A partir da 2.1.1 a mensagem diz a causa e mostra o código entre parênteses. A
 
 ## Se a tela de login não responder
 
-A tela de login mostra uma linha de status embaixo ("versão 2.5.5 · pronto para entrar"). Se aparecer "os scripts do Firebase não carregaram", é internet/bloqueio; se aparecer "o Firebase ainda não respondeu", feche e abra de novo. Qualquer erro de JavaScript ou do Firestore aparece numa faixa vermelha na parte de baixo da tela — mande esse texto para diagnóstico.
+A tela de login mostra uma linha de status embaixo ("versão 2.6.0 · pronto para entrar"). Se aparecer "os scripts do Firebase não carregaram", é internet/bloqueio; se aparecer "o Firebase ainda não respondeu", feche e abra de novo. Qualquer erro de JavaScript ou do Firestore aparece numa faixa vermelha na parte de baixo da tela — mande esse texto para diagnóstico.
 
 Se o app novo foi publicado no mesmo endereço do antigo: o service worker antigo pode entregar a página velha até a segunda abertura. Abra o endereço no navegador, recarregue duas vezes, ou desinstale o PWA antigo e instale de novo. Abrir o `index.html` direto do arquivo (file://) não funciona: use sempre o endereço do GitHub Pages.
 
