@@ -5,7 +5,7 @@ Dois PWAs em arquivo único para GitHub Pages, no mesmo projeto Firebase (`nosso
 | Pasta | O que é | Quem usa |
 |---|---|---|
 | `nosso-territorio/` | App principal: mapa com territórios e quadras clicáveis, ficha, programação de campo, pontos de saída, Início com ciclo de cobertura e painel de atenção, editor de quadras, cartões de casas, backups automáticos | Quem administra (login com e-mail/senha ou Google) |
-| `nosso-territorio-dirigente/` | App Dirigente: território recebido por link, mapa, quadras feitas e conclusão | Dirigentes de campo (abrem o link que o administrador envia) |
+| `nosso-territorio-dirigente/` | App Dirigente: todos os territórios, mapa, quadras feitas, nome do dirigente e conclusão | Dirigentes de campo (sem login) |
 | `nosso-territorio-cartoes/` | App Cartões: marcação de casas por quadra, três visitas, funciona sem internet e sem login | Publicadores (abre sozinho, sem código; também pelo QR Code de cada território) |
 
 ## 1. Subir no GitHub
@@ -63,11 +63,9 @@ A página usa o manifest e o service worker do app, por isso o botão **"Instala
 
 ## App Dirigente (2.6)
 
-Terceiro app, na pasta `nosso-territorio-dirigente/` (publicado em `https://dirigentesdecampo.netlify.app/`). Não tem login nem código: **cada território tem um link próprio**. O administrador manda o link pelo WhatsApp (ele vai no texto do "Compartilhar no WhatsApp" da ficha e também no botão "Dirigente" ao lado do QR Code); quem abre o link no celular passa a ter aquele território no app, com o mapa (ruas nítidas e quadras numeradas). Ele toca nas quadras **que já fez** (ficam verdes), e marca "Território concluído". As quadras que não foram tocadas chegam ao app principal como pendentes; a conclusão entra com a data e o nome do responsável no histórico.
+Terceiro app, na pasta `nosso-territorio-dirigente/` (publicado em `https://dirigentesdecampo.netlify.app/`). Sem login nem código: ao abrir, lista **todos os territórios** da congregação (busca por número ou nome; filtros Todos / Em andamento / A iniciar / Concluídos). Ao escolher um, mostra o mapa dele (ruas nítidas e quadras numeradas); o dirigente toca nas quadras **que já fez** (ficam verdes), preenche **"Quem está dirigindo"** e marca "Território concluído". O app principal recebe tudo: o território é iniciado, o responsável preenchido com o nome digitado, as quadras não tocadas entram como pendentes e a conclusão vai para o histórico. O botão "Dirigente" na ficha do território (ao lado do QR Code) envia pelo WhatsApp o link que abre o app já naquele território.
 
-O link muda sempre que o território é iniciado de novo ("Iniciar território"), então um link antigo não reabre um ciclo novo. O app guarda no celular todos os links recebidos; "limpar os concluídos" tira da lista os já encerrados.
-
-Firestore: `congregacoes/{uid}/designados/{token}` (o app principal grava um documento por território com link; o dirigente, anônimo, só lê) e `congregacoes/{uid}/retornos/{token}` (o dirigente grava só `pend`, `done`, `ts`). **Publique o `firestore.rules` novo** e mantenha o provedor Anônimo ativo.
+Firestore: o app lê `congregacoes/{uid}/publico/dados` (nomes e situação dos territórios, gravados pelo app principal) e grava `congregacoes/{uid}/retornos/{nº}` (apenas `nome`, `pend`, `done`, `c`, `ts`). **Publique o `firestore.rules` novo** e mantenha o provedor Anônimo ativo.
 
 ## App Cartões: edição protegida e dias sem casas (2.4)
 
@@ -107,7 +105,7 @@ A partir da 2.1.1 a mensagem diz a causa e mostra o código entre parênteses. A
 
 ## Se a tela de login não responder
 
-A tela de login mostra uma linha de status embaixo ("versão 2.6.0 · pronto para entrar"). Se aparecer "os scripts do Firebase não carregaram", é internet/bloqueio; se aparecer "o Firebase ainda não respondeu", feche e abra de novo. Qualquer erro de JavaScript ou do Firestore aparece numa faixa vermelha na parte de baixo da tela — mande esse texto para diagnóstico.
+A tela de login mostra uma linha de status embaixo ("versão 2.6.1 · pronto para entrar"). Se aparecer "os scripts do Firebase não carregaram", é internet/bloqueio; se aparecer "o Firebase ainda não respondeu", feche e abra de novo. Qualquer erro de JavaScript ou do Firestore aparece numa faixa vermelha na parte de baixo da tela — mande esse texto para diagnóstico.
 
 Se o app novo foi publicado no mesmo endereço do antigo: o service worker antigo pode entregar a página velha até a segunda abertura. Abra o endereço no navegador, recarregue duas vezes, ou desinstale o PWA antigo e instale de novo. Abrir o `index.html` direto do arquivo (file://) não funciona: use sempre o endereço do GitHub Pages.
 

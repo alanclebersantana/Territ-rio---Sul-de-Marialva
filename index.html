@@ -659,8 +659,8 @@ input[type=url]{width:100%;background:var(--surface);border:1px solid var(--line
     <div class="acts"><button class="btn" id="btnCardsUrl">Localizar / verificar endereço</button><button class="btn" id="btnCardsSeed">Importar / atualizar cartões do PDF</button><button class="btn" id="btnQrPrint"><svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/></svg>QR Codes para imprimir</button></div>
     <p class="note" style="text-align:left" id="cardsInfo">Os publicadores só instalam o app Cartões e abrem: ele se conecta sozinho a esta congregação, sem login e sem código.</p>
   </div>
-  <div class="card"><h3>App Dirigente <span class="n">link por território</span></h3>
-    <p style="margin:0 0 8px;font-size:13.5px;color:var(--muted)">Cada território tem um link próprio para o app Dirigente. Ao compartilhar o território (botão "Compartilhar no WhatsApp" da ficha), o link vai junto; quem recebe abre no celular sem senha nem código e vê só aquele território: marca as quadras feitas e conclui. O link muda a cada novo início do território, então o anterior deixa de valer.</p>
+  <div class="card"><h3>App Dirigente <span class="n">para os dirigentes de campo</span></h3>
+    <p style="margin:0 0 8px;font-size:13.5px;color:var(--muted)">O dirigente abre o app, vê todos os territórios e escolhe o dele: informa o nome de quem está dirigindo, toca nas quadras feitas e conclui. Tudo chega aqui sozinho: o território é iniciado, o responsável preenchido, as pendências e a conclusão registradas.</p>
     <div class="fields"><label class="f full"><span>Endereço do app Dirigente (para o link enviado)</span><input type="url" id="cfgDirUrl" placeholder="https://dirigentesdecampo.netlify.app/" autocomplete="off" spellcheck="false"></label></div>
     <p class="note" style="text-align:left" id="dirInfo">—</p>
   </div>
@@ -771,7 +771,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
    cartões de casas em congregacoes/{uid}/cartoes, cópias em .../backups.
    ===================================================================== */
 'use strict';
-const APP_VER='2.6.0';
+const APP_VER='2.6.1';
 const $=id=>document.getElementById(id);
 const pad2=k=>String(k).padStart(2,'0');
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -855,7 +855,7 @@ function seed(n){ const t={}; for(let i=1;i<=n;i++) t[String(i)]=blankT(); retur
 function rebuildKeys(){ const n=Math.max(1,Math.min(500,DB.cfg.total||1)); KEYS=Array.from({length:n},(_,i)=>String(i+1)); KEYS.forEach(k=>{ if(!DB.t[k]) DB.t[k]=blankT(); }); }
 const Store={ load(){ try{ const s=localStorage.getItem(KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }, save(d){ try{ localStorage.setItem(KEY,JSON.stringify(d)); }catch(e){} } };
 let saveT=null;
-function persist(){ clearTimeout(saveT); saveT=setTimeout(()=>{ Store.save(DB); pushToCloud(); scheduleChangeBackup(); pushPublico(); pushDesignados(); },250); }
+function persist(){ clearTimeout(saveT); saveT=setTimeout(()=>{ Store.save(DB); pushToCloud(); scheduleChangeBackup(); pushPublico(); },250); }
 function touch(k){ if(!k||!DB.t[k]) return; DB.t[k].ts=Date.now(); dirty.add('t.'+k); persist(); publicoDirty=true; }
 function touchProg(){ DB.p.ts=Date.now(); dirty.add('p'); persist(); }
 function touchSaidas(){ DB.s.ts=Date.now(); dirty.add('s'); persist(); }
@@ -1051,7 +1051,7 @@ function renderStart(){ const k=cur,st=stOf(cur); const T_=()=>DB.t[k]; let h=''
   else if(st==='wip') h=`<div class="acts"><button class="btn primary wide" id="btnDone"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Território concluído</button><button class="btn" id="btnUndo" style="width:100%;justify-content:center">Desfazer início</button></div>`;
   else h=`<div class="acts"><button class="btn primary wide" id="btnStart"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Iniciar território</button></div>`;
   $('startbar').innerHTML=h;
-  const bs=$('btnStart'); if(bs) bs.onclick=()=>{ const t=T_(); t.started=true; t.tok=newTok(); if(!t.start) t.start=today(); if(!t.assign&&t.resp) t.assign=today(); $('fStart').value=t.start; touch(k); refreshAll(); toast('Iniciado em '+br(t.start)); };
+  const bs=$('btnStart'); if(bs) bs.onclick=()=>{ const t=T_(); t.started=true; if(!t.start) t.start=today(); if(!t.assign&&t.resp) t.assign=today(); $('fStart').value=t.start; touch(k); refreshAll(); toast('Iniciado em '+br(t.start)); };
   const bu=$('btnUndo'); if(bu) bu.onclick=()=>{ const t=T_(); t.started=false; t.start=''; $('fStart').value=''; touch(k); refreshAll(); };
   const bre=$('btnReabrir'); if(bre) bre.onclick=()=>{ const t=T_(); t.end=''; t.started=true; $('fEnd').value=''; touch(k); refreshAll(); toast('Território reaberto · o registro continua no histórico'); };
   const bd=$('btnDone'); if(bd) bd.onclick=async()=>{ const r=await ask('Faltou alguma quadra deste território?',[['Não, concluído inteiro','primary'],['Sim, marcar no mapa',''],['Cancelar','']]); if(r!==0&&r!==1) return; if(r===1){ enterQuads(true); return; } if(noMapa(k)) T_().pend=[]; finishT(); };
@@ -1122,7 +1122,7 @@ function shareImage(k){ const b=GEO.t[k].bb,pad=70; const x0=Math.max(0,b[0][0]-
   Q[k].forEach((q,i)=>{ const path=new Path2D(Pm(q)); const pend=DB.t[k].pend.includes(i); g.fillStyle=pend?'rgba(217,83,74,.28)':'rgba(255,255,255,0)'; g.fill(path); g.lineWidth=4/sc; g.strokeStyle=pend?'#D9534A':'#0F1613'; g.lineJoin='round'; g.stroke(path); if(pend){ g.save(); g.clip(path); g.strokeStyle='#D9534A'; g.lineWidth=2.5/sc; for(let d=-(y1-y0);d<(x1-x0)+(y1-y0);d+=16/sc){ g.beginPath(); g.moveTo(x0+d,y0); g.lineTo(x0+d-(y1-y0),y1); g.stroke(); } g.restore(); } const cc=qCentroid(q); g.font=`800 ${34/sc}px Manrope,sans-serif`; g.textAlign='center'; g.textBaseline='middle'; g.lineWidth=6/sc; g.strokeStyle='#fff'; g.strokeText(String(i+1),cc[0],cc[1]); g.fillStyle='#0F1613'; g.fillText(String(i+1),cc[0],cc[1]); });
   paintLabels(g,x0,y0,x1,y1); g.restore(); g.fillStyle='#0B4A34'; g.fillRect(0,0,cw,head); g.fillStyle='#fff'; g.textBaseline='middle'; g.textAlign='left'; g.font=`700 ${Math.round(head*.5)}px Caveat,cursive`; g.fillText(pad2(k),Math.round(head*.3),head/2); g.font=`800 ${Math.round(head*.26)}px Manrope,sans-serif`; g.fillText(nome(k),Math.round(head*1.1),head*.38); g.font=`600 ${Math.round(head*.19)}px Manrope,sans-serif`; g.fillStyle='rgba(255,255,255,.8)'; const t=DB.t[k]; g.fillText(`${area(k)} · ${rotulo[stOf(k)]}${t.resp?' · '+t.resp:''}${t.pend.length?' · '+t.pend.length+' quadra'+(t.pend.length>1?'s':'')+' pendente'+(t.pend.length>1?'s':''):''}`,Math.round(head*1.1),head*.7); g.textAlign='right'; g.fillText(DB.cfg.congName||'',cw-Math.round(head*.3),head*.38); return c; }
 let shCanvas=null;
-$('btnShare').addEventListener('click',()=>{ if(!noMapa(cur)) return; shCanvas=shareImage(cur); $('shImg').src=shCanvas.toDataURL('image/png'); $('shTxt').textContent=shareText(cur); pushDesignados(); $('swShQr').setAttribute('aria-checked',String(shQrOn())); openModal('shmodal'); });
+$('btnShare').addEventListener('click',()=>{ if(!noMapa(cur)) return; shCanvas=shareImage(cur); $('shImg').src=shCanvas.toDataURL('image/png'); $('shTxt').textContent=shareText(cur); $('swShQr').setAttribute('aria-checked',String(shQrOn())); openModal('shmodal'); });
 $('shClose').addEventListener('click',()=>closeModal('shmodal'));
 $('shCopy').addEventListener('click',async()=>{ try{ await navigator.clipboard.writeText($('shTxt').textContent); toast('Texto copiado'); }catch(e){ toast('Não foi possível copiar'); } });
 $('shWa').addEventListener('click',async()=>{ const txt=$('shTxt').textContent; if(navigator.share&&navigator.canShare){ try{ const blob=await new Promise(r=>shCanvas.toBlob(r,'image/png')); const files=[new File([blob],`territorio-${pad2(cur)}.png`,{type:'image/png'})]; if(shQrOn()){ const qb=await new Promise(r=>qrPoster(cur).toBlob(r,'image/png')); files.push(new File([qb],`qr-territorio-${pad2(cur)}.png`,{type:'image/png'})); } if(navigator.canShare({files})){ await navigator.share({files,text:txt}); return; } if(navigator.canShare({files:[files[0]]})){ await navigator.share({files:[files[0]],text:txt}); return; } }catch(e){ if(e&&e.name==='AbortError') return; } } window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener'); });
@@ -1219,23 +1219,23 @@ $('btnHistPrint').addEventListener('click',()=>{ fillHpYears(); const cur=servic
 $('hpCancel').addEventListener('click',()=>closeModal('hpmodal'));
 $('hpGo').addEventListener('click',()=>{ const from=$('hpFrom').value,to=$('hpTo').value; if(from&&to&&to<from){ toast('A data final não pode ser antes da inicial'); return; } const y=$('hpYear').value; const label=y?y:(from||to?`${from?br(from):'…'} a ${to?br(to):'…'}`:'todos os registros'); closeModal('hpmodal'); const box=$('histprint'); box.innerHTML=histPrintHtml(from,to,label); document.body.classList.add('printing'); const done=()=>{ document.body.classList.remove('printing'); box.innerHTML=''; removeEventListener('afterprint',done); }; addEventListener('afterprint',done); setTimeout(()=>{ try{ window.print(); }catch(e){ done(); toast('Este navegador não imprime daqui'); } },250); setTimeout(()=>{ if(document.body.classList.contains('printing')&&!document.hidden) done(); },120000); });
 
-/* ---------- app Dirigente: um link (token) por território ---------- */
-let retUnsub=null, desT=null, desLast={}, desRulesOk=null;
+/* ---------- app Dirigente: todos os territórios, retorno por território ---------- */
+let retUnsub=null, desRulesOk=null;
 function defaultDirUrl(){ return DEFAULT_DIR_URL; }
 function dirUrl(){ let u=(DB.cfg.dirUrl||'').trim()||defaultDirUrl(); if(u&&!/^https?:\/\//i.test(u)) u='https://'+u; u=u.replace(/index\.html?$/i,''); if(u&&!/[\/?#]$/.test(u)) u+='/'; return u; }
-function newTok(){ const a='abcdefghjkmnpqrstuvwxyz23456789'; let t=''; const r=new Uint8Array(10); (crypto.getRandomValues?crypto.getRandomValues(r):r.forEach((_,i)=>r[i]=Math.random()*256)); for(let i=0;i<10;i++) t+=a[r[i]%a.length]; return t; }
-function ensureTok(k){ const t=DB.t[k]; if(!t.tok){ t.tok=newTok(); touch(k); } return t.tok; }
-function dirLink(k){ const u=dirUrl(); return u?u+'?t='+ensureTok(k):''; }
-function desPayload(k){ const t=DB.t[k]; const ov=DB.qover[k]; return {k:String(+k),name:t.name||'',area:area(k),resp:t.resp||'',start:t.start||'',pend:t.pend||[],refs:t.refs||'',stop:t.stop||'',q:ov&&typeof ov.q==='string'?ov.q:'',ativo:!t.end,end:t.end||'',cong:DB.cfg.congName||'',city:DB.cfg.city||'',cards:cardsUrl(),ts:Date.now()}; }
-function pushDesignados(){ if(!user) return; clearTimeout(desT); desT=setTimeout(()=>{ KEYS.forEach(k=>{ const t=DB.t[k]; if(!t.tok) return; const p=desPayload(k); const sig=JSON.stringify([p.name,p.area,p.resp,p.start,p.pend,p.refs,p.stop,p.q,p.ativo,p.end,p.cong,p.city,p.cards]); if(desLast[t.tok]===sig) return; desLast[t.tok]=sig; congRef.collection('designados').doc(t.tok).set(p,{merge:true}).catch(e=>{ delete desLast[t.tok]; if(e&&/permission/.test(e.code||'')){ desRulesOk=false; renderDirInfo(); } }); }); },1200); }
-function loadRetornos(){ if(retUnsub) retUnsub(); retUnsub=congRef.collection('retornos').onSnapshot(snap=>{ desRulesOk=true; renderDirInfo(); snap.forEach(d=>applyRetorno(d.id,d.data())); },e=>{ desRulesOk=false; renderDirInfo(); diag('App Dirigente · '+((e&&e.code)||'erro')+' — '+((e&&e.message)||'')+'\nPublique o firestore.rules novo no projeto '+firebaseConfig.projectId+' (coleções "designados" e "retornos").'); }); }
-function applyRetorno(id,r){ if(!r||!r.k||!DB||!DB.t[r.k]) return; if((r.appliedTs||0)>=(r.ts||0)) return; const k=String(+r.k),t=DB.t[k]; if(r.tok&&t.tok&&r.tok!==t.tok){ congRef.collection('retornos').doc(id).set({appliedTs:r.ts||Date.now()},{merge:true}).catch(()=>{}); return; } let msg=[];
+function dirLink(k){ const u=dirUrl(); return u?u+'?t='+(+k):''; }
+function loadRetornos(){ if(retUnsub) retUnsub(); retUnsub=congRef.collection('retornos').onSnapshot(snap=>{ desRulesOk=true; renderDirInfo(); snap.forEach(d=>applyRetorno(d.id,d.data())); },e=>{ desRulesOk=false; renderDirInfo(); diag('App Dirigente · '+((e&&e.code)||'erro')+' — '+((e&&e.message)||'')+'\nPublique o firestore.rules novo no projeto '+firebaseConfig.projectId+' (coleção "retornos").'); }); }
+function applyRetorno(id,r){ if(!r||!r.k||!DB||!DB.t[String(+r.k)]) return; if((r.appliedTs||0)>=(r.ts||0)) return; const k=String(+r.k),t=DB.t[k]; const ack=extra=>congRef.collection('retornos').doc(id).set(Object.assign({appliedTs:r.ts||Date.now()},extra||{}),{merge:true}).catch(()=>{});
+  if(t.end&&r.c&&r.c!==t.start){ ack(); return; }   // retorno de um ciclo já encerrado
+  let msg=[]; const nm=(r.nome||'').trim();
+  if(!t.started||t.end){ if(t.end){ ack(); return; } t.started=true; if(!t.start) t.start=today(); msg.push('iniciado'); }
+  if(nm&&nm!==(t.resp||'').trim()){ t.resp=nm; if(!t.assign) t.assign=today(); msg.push('dirigente: '+nm); }
   if(Array.isArray(r.pend)){ const np=r.pend.filter(x=>Number.isInteger(x)).sort((a,b)=>a-b); if(JSON.stringify(np)!==JSON.stringify((t.pend||[]).slice().sort((a,b)=>a-b))){ t.pend=np; msg.push(np.length?`${np.length} quadra${np.length>1?'s':''} pendente${np.length>1?'s':''}`:'todas as quadras feitas'); } }
-  if(r.done&&!t.end){ t.started=true; if(!t.start) t.start=r.done; t.end=r.done>=t.start?r.done:t.start; addHist(t,t.start,t.end); msg.push('concluído em '+br(t.end)); }
+  if(r.done&&!t.end){ t.end=r.done>=t.start?r.done:t.start; addHist(t,t.start,t.end); msg.push('concluído em '+br(t.end)); }
   if(msg.length){ touch(k); refreshAll(); toast(`${t.resp||'Dirigente'} · território ${pad2(k)}: ${msg.join(', ')}`); }
-  congRef.collection('retornos').doc(id).set({appliedTs:r.ts||Date.now()},{merge:true}).catch(()=>{}); }
-function renderDirInfo(){ const e=$('dirInfo'); if(!e) return; const n=KEYS.filter(k=>DB.t[k].tok&&!DB.t[k].end).length; e.textContent=(desRulesOk===false?'O Firestore recusou as coleções do app Dirigente: publique o firestore.rules novo. · ':'')+`${n} território${n!==1?'s':''} com link ativo no momento. O link de cada território aparece na ficha dele (botão "Dirigente") e no texto do "Compartilhar no WhatsApp".`; e.style.color=desRulesOk===false?'var(--red)':''; }
-$('btnDirLink').addEventListener('click',async()=>{ if(!cur) return; const k=cur,t=DB.t[k]; if(t.end){ toast('Território concluído: inicie-o de novo para gerar um link'); return; } const link=dirLink(k); if(!link){ toast('Informe o endereço do app Dirigente nas configurações'); return; } pushDesignados(); const txt=`*TERRITÓRIO ${pad2(k)}${t.name?' · '+t.name:''}*${t.resp?'\nDirigente: '+t.resp:''}\nAbra no celular para ver o mapa, marcar as quadras feitas e concluir:\n${link}`; if(navigator.share){ try{ await navigator.share({text:txt}); return; }catch(e){ if(e&&e.name==='AbortError') return; } } window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener'); });
+  ack({c:t.start}); }
+function renderDirInfo(){ const e=$('dirInfo'); if(!e) return; e.textContent=(desRulesOk===false?'O Firestore recusou a coleção "retornos" do app Dirigente: publique o firestore.rules novo. ':'')+'O app Dirigente lista todos os territórios; ao abrir um, o dirigente informa o nome, marca as quadras feitas e conclui — isso chega aqui sozinho (início, responsável, pendências e conclusão). O link de um território específico está no botão "Dirigente" da ficha.'; e.style.color=desRulesOk===false?'var(--red)':''; }
+$('btnDirLink').addEventListener('click',async()=>{ if(!cur) return; const k=cur,t=DB.t[k]; const link=dirLink(k); if(!link){ toast('Informe o endereço do app Dirigente nas configurações'); return; } const txt=`*TERRITÓRIO ${pad2(k)}${t.name?' · '+t.name:''}*${t.resp?'\nDirigente: '+t.resp:''}\nAbra no celular para ver o mapa, marcar as quadras feitas e concluir:\n${link}`; if(navigator.share){ try{ await navigator.share({text:txt}); return; }catch(e){ if(e&&e.name==='AbortError') return; } } window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener'); });
 
 /* ---------- páginas de instalação (instalar/ de cada app) ---------- */
 function instUrlOf(which){ const base=which==='c'?cardsUrl():dirUrl(); return base?base+'instalar/':''; }
@@ -1335,7 +1335,7 @@ $('cmClose').addEventListener('click',()=>closeModal('cardmodal'));
 
 /* ---------- dados públicos para o app Cartões ---------- */
 let publicoDirty=false, pubT=null;
-function pushPublico(){ if(!user) return; clearTimeout(pubT); pubT=setTimeout(()=>{ if(!publicoDirty) return; publicoDirty=false; const nomes={}; KEYS.forEach(k=>{ nomes[k]={n:DB.t[k].name||'',a:area(k)}; }); congRef.collection('publico').doc('dados').set({nomes,cong:DB.cfg.congName||'',city:DB.cfg.city||'',ts:Date.now()}).catch(()=>{ publicoDirty=true; }); },1500); }
+function pushPublico(){ if(!user) return; clearTimeout(pubT); pubT=setTimeout(()=>{ if(!publicoDirty) return; publicoDirty=false; const nomes={},st={}; KEYS.forEach(k=>{ const t=DB.t[k]; nomes[k]={n:t.name||'',a:area(k)}; const ov=DB.qover[k]; st[k]={s:stOf(k),r:t.resp||'',st:t.start||'',en:t.end||'',p:t.pend||[],c:t.start||'',refs:t.refs||'',stop:t.stop||'',q:ov&&typeof ov.q==='string'?ov.q:'',ts:t.ts||0}; }); congRef.collection('publico').doc('dados').set({nomes,st,cong:DB.cfg.congName||'',city:DB.cfg.city||'',cards:cardsUrl(),ts:Date.now()}).catch(()=>{ publicoDirty=true; }); },1500); }
 // O app Cartões abre direto: ele lê config/padrao para saber qual congregação usar.
 async function ensureDefault(){ try{ const ref=dbFS.collection('config').doc('padrao'); const d=await ref.get(); if(!d.exists||d.data().cong===user.uid){ await ref.set({cong:user.uid,nome:DB.cfg.congName||'',ts:Date.now()}); $('cardsLink').textContent='Conectado: o app Cartões abre direto nesta congregação.'; } else { $('cardsLink').textContent='Atenção: o app Cartões está apontando para outra conta ('+(d.data().nome||d.data().cong)+').'; } }catch(e){ $('cardsLink').textContent='Não foi possível registrar esta congregação para o app Cartões (confira as regras do Firestore).'; } }
 
