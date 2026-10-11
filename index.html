@@ -659,6 +659,17 @@ input[type=url]{width:100%;background:var(--surface);border:1px solid var(--line
     <div class="acts"><button class="btn" id="btnCardsUrl">Localizar / verificar endereço</button><button class="btn" id="btnCardsSeed">Importar / atualizar cartões do PDF</button><button class="btn" id="btnQrPrint"><svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/></svg>QR Codes para imprimir</button></div>
     <p class="note" style="text-align:left" id="cardsInfo">Os publicadores só instalam o app Cartões e abrem: ele se conecta sozinho a esta congregação, sem login e sem código.</p>
   </div>
+  <div class="card"><h3>App Dirigente <span class="n">territórios designados</span></h3>
+    <p style="margin:0 0 8px;font-size:13.5px;color:var(--muted)">Cada dirigente entra no app Dirigente com um código numérico e vê só os territórios designados a ele (o nome em "Responsável" na ficha do território precisa ser igual ao nome cadastrado aqui). Lá ele marca as quadras pendentes e conclui o território; a mudança chega aqui sozinha.</p>
+    <div class="fields"><label class="f full"><span>Endereço do app Dirigente (para o link enviado)</span><input type="url" id="cfgDirUrl" placeholder="https://SEU-USUARIO.github.io/nosso-territorio-dirigente/" autocomplete="off" spellcheck="false"></label></div>
+    <div id="dirList" style="margin-top:8px"></div>
+    <div class="acts" style="margin-top:10px"><button class="btn primary" id="btnDirNew">+ Novo dirigente</button></div>
+  </div>
+  <div class="card"><h3>Páginas de instalação <span class="n">para publicadores e dirigentes</span></h3>
+    <p style="margin:0 0 8px;font-size:13.5px;color:var(--muted)">Cada app tem a sua página instaladora, publicada junto com ele na pasta <b>instalar/</b>: botão "Instalar o app", passo a passo para Android e iPhone e QR Code. Os endereços vêm dos campos "Endereço do app Cartões" e "Endereço do app Dirigente" acima.</p>
+    <div class="histrow"><span class="hd"><b>Cartões</b><small id="instC">—</small></span><button class="btn" data-inst="c" data-act="wa" style="padding:7px 11px;font-size:12px">Enviar</button><button class="btn" data-inst="c" data-act="cp" style="padding:7px 11px;font-size:12px">Copiar</button></div>
+    <div class="histrow"><span class="hd"><b>Dirigente</b><small id="instD">—</small></span><button class="btn" data-inst="d" data-act="wa" style="padding:7px 11px;font-size:12px">Enviar</button><button class="btn" data-inst="d" data-act="cp" style="padding:7px 11px;font-size:12px">Copiar</button></div>
+  </div>
   <div class="card"><h3>Aparência</h3><div class="seg" id="cfgTheme"><button data-t="light">Claro</button><button data-t="dark">Escuro</button><button data-t="auto">Do sistema</button></div></div>
   <div class="card"><h3>Backup automático</h3>
     <div class="switch"><span>Diário<small>Uma cópia por dia na nuvem, guardada por 90 dias</small></span><button class="sw" id="swBkDaily" role="switch" aria-checked="true" aria-label="Backup diário"></button></div>
@@ -761,7 +772,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
    cartões de casas em congregacoes/{uid}/cartoes, cópias em .../backups.
    ===================================================================== */
 'use strict';
-const APP_VER='2.3.3';
+const APP_VER='2.5.2';
 const $=id=>document.getElementById(id);
 const pad2=k=>String(k).padStart(2,'0');
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -837,7 +848,7 @@ function normT(s){ s=s||{}; const o={name:s.name||'',resp:s.resp||'',assign:s.as
   return o; }
 function normalize(d){
   d=d||{}; const t={}; Object.keys(d.t||{}).forEach(k=>{ t[String(+k)]=normT(d.t[k]); });
-  const cfg=Object.assign({congName:'',city:'',total:Object.keys(t).length||20,bkDaily:true,bkChange:true,cartoesSeed:false,cartoesUrl:'',ts:0},d.cfg||{});
+  const cfg=Object.assign({congName:'',city:'',total:Object.keys(t).length||20,bkDaily:true,bkChange:true,cartoesSeed:false,cartoesUrl:'',dirUrl:'',ts:0},d.cfg||{});
   const items=x=>(x&&Array.isArray(x.items))?{items:x.items,ts:x.ts||0}:{items:[],ts:0};
   return {v:4,t,p:items(d.p),s:items(d.s),dir:items(d.dir),cfg,qover:d.qover||{}};
 }
@@ -845,7 +856,7 @@ function seed(n){ const t={}; for(let i=1;i<=n;i++) t[String(i)]=blankT(); retur
 function rebuildKeys(){ const n=Math.max(1,Math.min(500,DB.cfg.total||1)); KEYS=Array.from({length:n},(_,i)=>String(i+1)); KEYS.forEach(k=>{ if(!DB.t[k]) DB.t[k]=blankT(); }); }
 const Store={ load(){ try{ const s=localStorage.getItem(KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }, save(d){ try{ localStorage.setItem(KEY,JSON.stringify(d)); }catch(e){} } };
 let saveT=null;
-function persist(){ clearTimeout(saveT); saveT=setTimeout(()=>{ Store.save(DB); pushToCloud(); scheduleChangeBackup(); pushPublico(); },250); }
+function persist(){ clearTimeout(saveT); saveT=setTimeout(()=>{ Store.save(DB); pushToCloud(); scheduleChangeBackup(); pushPublico(); pushDirigentes(); },250); }
 function touch(k){ if(!k||!DB.t[k]) return; DB.t[k].ts=Date.now(); dirty.add('t.'+k); persist(); publicoDirty=true; }
 function touchProg(){ DB.p.ts=Date.now(); dirty.add('p'); persist(); }
 function touchSaidas(){ DB.s.ts=Date.now(); dirty.add('s'); persist(); }
@@ -919,7 +930,7 @@ async function boot(u){
   if(legacy) toast('Dados do app anterior importados');
   pushToCloud(true); attachListener(); publicoDirty=true; pushPublico();
   initMap(); refreshAll(); applyTheme(themePref()); markTheme();
-  loadCards(); ensureDefault(); setTimeout(()=>checkCardsUrl(false),2500);
+  loadCards(); ensureDefault(); loadDirigentes(); setTimeout(()=>checkCardsUrl(false),2500);
   if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
   dailyBackup();
   irPara('pgHome');
@@ -1068,7 +1079,7 @@ function posicao(){ return new Promise((res,rej)=>{ if(!navigator.geolocation) r
 async function openMaps(q){ let url='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q); if($('chkRota').checked){ toast('Localizando…'); try{ const c=await posicao(); url=`https://www.google.com/maps/dir/?api=1&origin=${c.latitude},${c.longitude}&destination=${encodeURIComponent(q)}&travelmode=driving`; }catch(e){ toast('Não consegui a localização — abrindo só o local'); } } window.open(url,'_blank','noopener'); }
 $('btnMaps').addEventListener('click',()=>openMaps(mapsQuery(cur))); $('sMaps').addEventListener('click',()=>openMaps(mapsQuery(cur)));
 try{ $('chkRota').checked=localStorage.getItem('nt_rota')==='1'; }catch(e){} $('chkRota').addEventListener('change',()=>{ try{ localStorage.setItem('nt_rota',$('chkRota').checked?'1':'0'); }catch(e){} });
-function buildPeople(){ $('people').innerHTML=peopleList().map(p=>`<option value="${esc(p)}">`).join(''); }
+function buildPeople(){ const all=[...new Set([...Object.values(DIRS).map(d=>d.nome),...peopleList()])].sort((a,b)=>a.localeCompare(b,'pt')); $('people').innerHTML=all.map(p=>`<option value="${esc(p)}">`).join(''); }
 
 /* ---------- quadras: pendentes ---------- */
 let ePick=[],eOrder=[],eMode='join';
@@ -1206,6 +1217,31 @@ $('btnHistPrint').addEventListener('click',()=>{ fillHpYears(); const cur=servic
 $('hpCancel').addEventListener('click',()=>closeModal('hpmodal'));
 $('hpGo').addEventListener('click',()=>{ const from=$('hpFrom').value,to=$('hpTo').value; if(from&&to&&to<from){ toast('A data final não pode ser antes da inicial'); return; } const y=$('hpYear').value; const label=y?y:(from||to?`${from?br(from):'…'} a ${to?br(to):'…'}`:'todos os registros'); closeModal('hpmodal'); const box=$('histprint'); box.innerHTML=histPrintHtml(from,to,label); document.body.classList.add('printing'); const done=()=>{ document.body.classList.remove('printing'); box.innerHTML=''; removeEventListener('afterprint',done); }; addEventListener('afterprint',done); setTimeout(()=>{ try{ window.print(); }catch(e){ done(); toast('Este navegador não imprime daqui'); } },250); setTimeout(()=>{ if(document.body.classList.contains('printing')&&!document.hidden) done(); },120000); });
 
+/* ---------- dirigentes de campo (app Dirigente) ---------- */
+let DIRS={}, dirsUnsub=null, retUnsub=null, dirT=null, dirLast={};
+function defaultDirUrl(){ try{ return new URL('../nosso-territorio-dirigente/',location.href).href; }catch(e){ return ''; } }
+function dirUrl(){ let u=(DB.cfg.dirUrl||'').trim()||defaultDirUrl(); if(u&&!/^https?:\/\//i.test(u)) u='https://'+u; u=u.replace(/index\.html?$/i,''); if(u&&!/[\/?#]$/.test(u)) u+='/'; return u; }
+function dirTerrs(d){ const key=pkey(d.nome||''); if(!key) return {}; const out={}; KEYS.forEach(k=>{ const t=DB.t[k]; if(pkey(t.resp||'')!==key||t.end) return; const ov=DB.qover[k]; out[k]={name:t.name||'',area:area(k),start:t.start||'',assign:t.assign||'',pend:t.pend||[],refs:t.refs||'',stop:t.stop||'',q:ov&&typeof ov.q==='string'?ov.q:'',ts:t.ts||0}; }); return out; }
+function pushDirigentes(){ if(!user) return; clearTimeout(dirT); dirT=setTimeout(()=>{ Object.values(DIRS).forEach(d=>{ const terrs=dirTerrs(d); const payload={nome:d.nome,ativo:d.ativo!==false,terrs,cong:DB.cfg.congName||'',city:DB.cfg.city||'',cards:cardsUrl(),ts:Date.now()}; const sig=JSON.stringify([d.nome,d.ativo,terrs,payload.cong,payload.city,payload.cards]); if(dirLast[d.code]===sig) return; dirLast[d.code]=sig; congRef.collection('dirigentes').doc(d.code).set(payload,{merge:true}).catch(()=>{ delete dirLast[d.code]; }); }); },1200); }
+function loadDirigentes(){ if(dirsUnsub) dirsUnsub(); dirsUnsub=congRef.collection('dirigentes').onSnapshot(snap=>{ DIRS={}; snap.forEach(d=>{ DIRS[d.id]=Object.assign({code:d.id},d.data()); }); renderDirigentes(); buildPeople(); pushDirigentes(); },()=>{});
+  if(retUnsub) retUnsub(); retUnsub=congRef.collection('retornos').onSnapshot(snap=>{ snap.forEach(d=>applyRetorno(d.id,d.data())); },()=>{}); }
+function applyRetorno(id,r){ if(!r||!r.k||!DB||!DB.t[r.k]) return; if((r.appliedTs||0)>=(r.ts||0)) return; const k=String(+r.k),t=DB.t[k]; const d=DIRS[r.code]; let msg=[];
+  if(Array.isArray(r.pend)){ const np=r.pend.filter(x=>Number.isInteger(x)).sort((a,b)=>a-b); if(JSON.stringify(np)!==JSON.stringify((t.pend||[]).slice().sort((a,b)=>a-b))){ t.pend=np; msg.push(np.length?`${np.length} quadra${np.length>1?'s':''} pendente${np.length>1?'s':''}`:'sem quadras pendentes'); } }
+  if(r.done&&!t.end){ t.started=true; if(!t.start) t.start=r.done; t.end=r.done>=t.start?r.done:t.start; if(d&&d.nome&&!t.resp) t.resp=d.nome; addHist(t,t.start,t.end); msg.push('concluído em '+br(t.end)); }
+  if(msg.length){ touch(k); refreshAll(); toast(`${d?d.nome:'Dirigente'} · território ${pad2(k)}: ${msg.join(', ')}`); }
+  congRef.collection('retornos').doc(id).set({appliedTs:r.ts||Date.now()},{merge:true}).catch(()=>{}); }
+function renderDirigentes(){ const el=$('dirList'); if(!el) return; const list=Object.values(DIRS).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt')); el.innerHTML=list.length?list.map(d=>{ const n=Object.keys(dirTerrs(d)).length; return `<div class="histrow"><span class="hd"><b>${esc(d.nome||'—')}</b><small>Código <b style="letter-spacing:.12em">${esc(d.code)}</b> · ${n} território${n!==1?'s':''} designado${n!==1?'s':''}</small></span><button class="btn" data-wa="${esc(d.code)}" style="padding:7px 11px;font-size:12px">Enviar</button><button class="btn danger" data-rm="${esc(d.code)}" style="padding:7px 11px;font-size:12px">✕</button></div>`; }).join(''):'<small style="color:var(--muted);font-size:12.5px">Nenhum dirigente cadastrado ainda.</small>';
+  el.querySelectorAll('[data-wa]').forEach(b=>b.addEventListener('click',()=>sendDirigente(b.dataset.wa)));
+  el.querySelectorAll('[data-rm]').forEach(b=>b.addEventListener('click',async()=>{ const d=DIRS[b.dataset.rm]; if(await ask(`Remover o dirigente ${d.nome}? O código ${d.code} deixa de funcionar no app Dirigente.`,[['Remover','danger'],['Cancelar','']])!==0) return; await congRef.collection('dirigentes').doc(d.code).delete().catch(()=>toast('Não foi possível remover')); delete dirLast[d.code]; })); }
+function newCode(){ let c; do{ c=String(Math.floor(100000+Math.random()*900000)); }while(DIRS[c]); return c; }
+$('btnDirNew').addEventListener('click',()=>{ edPrompt('Novo dirigente','Nome (igual ao usado em "Responsável")','',async v=>{ const nome_=v.trim(); if(!nome_) return; if(Object.values(DIRS).some(d=>pkey(d.nome)===pkey(nome_))){ toast('Já existe um dirigente com esse nome'); return; } const code=newCode(); DIRS[code]={code,nome:nome_,ativo:true}; try{ await congRef.collection('dirigentes').doc(code).set({nome:nome_,ativo:true,terrs:dirTerrs({nome:nome_}),cong:DB.cfg.congName||'',city:DB.cfg.city||'',cards:cardsUrl(),ts:Date.now()}); toast(`Dirigente criado · código ${code}`); renderDirigentes(); }catch(e){ delete DIRS[code]; toast('Não foi possível salvar (confira as regras do Firestore)'); } }); });
+async function sendDirigente(code){ const d=DIRS[code]; if(!d) return; const ks=Object.keys(dirTerrs(d)); const txt=`Olá, ${d.nome}! Seus territórios estão no app Dirigente${DB.cfg.congName?' da '+DB.cfg.congName:''}.\n\nAbra ${dirUrl()||'(endereço do app Dirigente)'} e entre com o código *${d.code}*.\n${ks.length?`Designado${ks.length>1?'s':''} a você agora: ${ks.map(k=>pad2(k)+(DB.t[k].name?' · '+DB.t[k].name:'')).join('; ')}.`:'Ainda não há território designado a você.'}\nNo app dá para abrir o mapa, marcar as quadras que faltaram e concluir o território.`; if(navigator.share){ try{ await navigator.share({text:txt}); return; }catch(e){ if(e&&e.name==='AbortError') return; } } window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener'); }
+
+/* ---------- páginas de instalação (instalar/ de cada app) ---------- */
+function instUrlOf(which){ const base=which==='c'?cardsUrl():((DB.cfg.dirUrl||'').trim()?dirUrl():''); return base?base+'instalar/':''; }
+function renderInst(){ const c=instUrlOf('c'),d=instUrlOf('d'); if($('instC')) $('instC').textContent=c||'informe o endereço do app Cartões'; if($('instD')) $('instD').textContent=d||'informe o endereço do app Dirigente'; }
+document.querySelectorAll('[data-inst]').forEach(b=>b.addEventListener('click',async()=>{ const which=b.dataset.inst,u=instUrlOf(which); if(!u){ toast('Informe primeiro o endereço do app'); return; } if(b.dataset.act==='cp'){ try{ await navigator.clipboard.writeText(u); toast('Link copiado'); }catch(e){ toast('Não foi possível copiar'); } return; } const nome_=which==='c'?'Cartões':'Dirigente'; const txt=`Instale o app ${nome_}${DB.cfg.congName?' da '+DB.cfg.congName:''} no celular: ${u}\n${which==='c'?'Abre direto, sem login e sem código.':'Entre com o código de 6 números que eu enviar.'}`; if(navigator.share){ try{ await navigator.share({text:txt}); return; }catch(e){ if(e&&e.name==='AbortError') return; } } window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener'); }));
+
 /* ---------- busca ---------- */
 $('q').addEventListener('input',renderSearch); $('q').addEventListener('focus',renderSearch);
 $('qx').addEventListener('click',()=>closeSearch(true));
@@ -1277,7 +1313,7 @@ $('btnNewCard').addEventListener('click',()=>{ edPrompt('Novo cartão de quadra'
 let cmK=null,cmEditMode=false;
 function openCardView(id){ cmK=id; cmEditMode=false; $('cmEdit').setAttribute('aria-pressed','false'); const c=CARDS[id]; $('cmT').textContent=`Mapa ${pad2(c.mapa)} · ${nome(c.mapa)} · Quadra ${c.quadra}`; renderCm(); if(!$('cardmodal').classList.contains('open')) openModal('cardmodal'); }
 function renderCm(){ const c=CARDS[cmK]; if(!c){ closeModal('cardmodal'); return; } const hs=cmHouses(c),p=cardProg(c); const v=c.v||[{d:'',p:''},{d:'',p:''},{d:'',p:''}];
-  const visits=`<div class="visits">${v.map((x,i)=>`<div class="visit"><span class="n" data-on="${x.d?1:0}">${i+1}ª</span><input type="date" data-v="${i}" value="${x.d||''}" aria-label="Data da ${i+1}ª visita"><select data-vp="${i}" aria-label="Período"><option value="">Período</option>${PERIODOS.map(z=>`<option ${x.p===z?'selected':''}>${z}</option>`).join('')}</select></div>`).join('')}</div>`;
+  const visits=`<div class="visits">${v.map((x,i)=>`<div class="visit"><span class="n" data-on="${x.d?1:0}">${i+1}ª</span><input type="date" data-v="${i}" value="${x.d||''}" aria-label="Data da ${i+1}ª visita"><select data-vp="${i}" aria-label="Período"><option value="">Período</option>${PERIODOS.map(z=>`<option ${x.p===z?'selected':''}>${z}</option>`).join('')}</select>${x.none?'<small style="grid-column:2/-1;color:#7A4E07;font-weight:700;font-size:11.5px">Nenhuma casa falada neste dia (marcado pelo publicador)</small>':''}</div>`).join('')}</div>`;
   const head=cmEditMode?`<div class="hh edit"><span>Lápis corrige · ✕ remove</span><span>✎</span><span>✕</span></div>`:`<div class="hh"><span>${p.d} de ${p.n} faladas</span><span>1ª</span><span>2ª</span><span>3ª</span></div>`;
   const rows=hs.length?hs.map(h=>{ const m=cmMarks(c,h); if(cmEditMode) return `<div class="house edit"><span>${esc(h)}${(c.extra||[]).includes(h)?'<span class="tagx">adicionada</span>':''}</span><button class="ed" data-edit="${esc(h)}" aria-label="Editar"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="ed del" data-del="${esc(h)}" aria-label="Remover"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`; return `<div class="house ${m.some(Boolean)?'done':''}"><span>${esc(h)}</span>${m.map((x,j)=>`<i role="checkbox" aria-checked="${x?'true':'false'}" data-c="${esc(h)}" data-j="${j}" data-on="${x?1:0}" tabindex="0"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></i>`).join('')}</div>`; }).join(''):'<div class="house" style="color:var(--muted);font-weight:600">Sem casas cadastradas. Adicione abaixo, na ordem da rua.</div>';
   $('cmBody').innerHTML=visits+head+rows+`<div class="addrow"><input id="cmAddIn" type="text" placeholder="Adicionar casa (nº, S/N, comércio…)"><button class="btn" id="cmAddBtn" style="padding:8px 12px;font-size:12.5px">Adicionar</button></div>`;
@@ -1318,8 +1354,8 @@ $('fileIn').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f) ret
 function importData(d){ const nd=normalize(d); nd.cfg.ts=Date.now(); Object.keys(nd.t).forEach(k=>{ nd.t[k].ts=Date.now(); }); nd.p.ts=Date.now(); nd.s.ts=Date.now(); nd.dir.ts=Date.now(); Object.keys(nd.qover).forEach(k=>nd.qover[k].ts=Date.now()); DB=nd; rebuildKeys(); buildQ(); Store.save(DB); pushToCloud(true); publicoDirty=true; pushPublico(); refreshAll(); }
 
 /* ---------- configurações ---------- */
-function fillCfg(){ $('cfgCong').value=DB.cfg.congName||''; $('cfgCity').value=DB.cfg.city||''; $('cfgCartoesUrl').value=DB.cfg.cartoesUrl||''; $('cfgCartoesUrl').placeholder=defaultCardsUrl(); $('cfgTotal').value=DB.cfg.total||KEYS.length; $('mapInfo').textContent=GEO?`Mapa Geral.pdf · ${MAPK.length} territórios desenhados · ${MAPK.reduce((a,k)=>a+(Q[k]||[]).length,0)} quadras (${Object.keys(DB.qover).length} com ajustes salvos).`:'Mapa não carregado.'; $('cfgAbout').textContent=`${DB.cfg.congName?'Territórios da '+DB.cfg.congName:'Nosso Território'} · ${KEYS.length} territórios · versão ${APP_VER}`; }
-$('btnCfgSave').addEventListener('click',()=>{ const n=Math.max(1,Math.min(500,parseInt($('cfgTotal').value,10)||KEYS.length)); DB.cfg.congName=$('cfgCong').value.trim(); DB.cfg.city=$('cfgCity').value.trim(); DB.cfg.cartoesUrl=$('cfgCartoesUrl').value.trim(); DB.cfg.total=n; rebuildKeys(); touchCfg(); refreshAll(); fillCfg(); ensureDefault(); toast('Configurações salvas'); });
+function fillCfg(){ $('cfgCong').value=DB.cfg.congName||''; $('cfgCity').value=DB.cfg.city||''; $('cfgCartoesUrl').value=DB.cfg.cartoesUrl||''; $('cfgCartoesUrl').placeholder=defaultCardsUrl(); $('cfgDirUrl').value=DB.cfg.dirUrl||''; $('cfgDirUrl').placeholder=defaultDirUrl(); renderDirigentes(); renderInst(); $('cfgTotal').value=DB.cfg.total||KEYS.length; $('mapInfo').textContent=GEO?`Mapa Geral.pdf · ${MAPK.length} territórios desenhados · ${MAPK.reduce((a,k)=>a+(Q[k]||[]).length,0)} quadras (${Object.keys(DB.qover).length} com ajustes salvos).`:'Mapa não carregado.'; $('cfgAbout').textContent=`${DB.cfg.congName?'Territórios da '+DB.cfg.congName:'Nosso Território'} · ${KEYS.length} territórios · versão ${APP_VER}`; }
+$('btnCfgSave').addEventListener('click',()=>{ const n=Math.max(1,Math.min(500,parseInt($('cfgTotal').value,10)||KEYS.length)); DB.cfg.congName=$('cfgCong').value.trim(); DB.cfg.city=$('cfgCity').value.trim(); DB.cfg.cartoesUrl=$('cfgCartoesUrl').value.trim(); DB.cfg.dirUrl=$('cfgDirUrl').value.trim(); DB.cfg.total=n; rebuildKeys(); touchCfg(); refreshAll(); fillCfg(); ensureDefault(); toast('Configurações salvas'); });
 const TKEY='nt_tema';
 function themePref(){ try{ return localStorage.getItem(TKEY)||'auto'; }catch(e){ return 'auto'; } }
 function applyTheme(p){ if(p==='auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme',p); try{ localStorage.setItem(TKEY,p); }catch(e){} }
