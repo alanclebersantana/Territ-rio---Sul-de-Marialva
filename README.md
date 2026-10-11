@@ -63,9 +63,9 @@ A página usa o manifest e o service worker do app, por isso o botão **"Instala
 
 ## App Dirigente (2.6)
 
-Terceiro app, na pasta `nosso-territorio-dirigente/` (publicado em `https://dirigentesdecampo.netlify.app/`). Sem login nem código: ao abrir, lista **todos os territórios** da congregação (busca por número ou nome; filtros Todos / Em andamento / A iniciar / Concluídos). Ao escolher um, mostra o mapa dele (ruas nítidas e quadras numeradas); o dirigente toca nas quadras **que já fez** (ficam verdes), preenche **"Quem está dirigindo"** e marca "Território concluído". O app principal recebe tudo: o território é iniciado, o responsável preenchido com o nome digitado, as quadras não tocadas entram como pendentes e a conclusão vai para o histórico. O botão "Dirigente" na ficha do território (ao lado do QR Code) envia pelo WhatsApp o link que abre o app já naquele território.
+Terceiro app, na pasta `nosso-territorio-dirigente/` (publicado em `https://dirigentesdecampo.netlify.app/`). Sem login nem código: ao abrir, lista **todos os territórios** da congregação (busca por número ou nome; filtros Todos / Em andamento / A iniciar / Concluídos). Ao escolher um, mostra o mapa dele (ruas nítidas e quadras numeradas); o dirigente toca nas quadras **que já fez** (ficam verdes), preenche **"Quem está dirigindo"**, anota **Observações** (vão para "Onde paramos" na ficha do território) e marca "Território concluído". O app principal recebe tudo: o território é iniciado, o responsável preenchido com o nome digitado, as quadras não tocadas entram como pendentes e a conclusão vai para o histórico. O botão "Dirigente" na ficha do território (ao lado do QR Code) envia pelo WhatsApp o link que abre o app já naquele território.
 
-Firestore: o app lê `congregacoes/{uid}/publico/dados` (nomes e situação dos territórios, gravados pelo app principal) e grava `congregacoes/{uid}/retornos/{nº}` (apenas `nome`, `pend`, `done`, `c`, `ts`). **Publique o `firestore.rules` novo** e mantenha o provedor Anônimo ativo.
+Firestore: o app lê `congregacoes/{uid}/publico/dados` (nomes e situação dos territórios, gravados pelo app principal) e grava `congregacoes/{uid}/retornos/{nº}` (apenas `nome`, `obs`, `pend`, `done`, `c`, `ts`). **Publique o `firestore.rules` novo** e mantenha o provedor Anônimo ativo.
 
 ## App Cartões: edição protegida e dias sem casas (2.4)
 
@@ -105,7 +105,7 @@ A partir da 2.1.1 a mensagem diz a causa e mostra o código entre parênteses. A
 
 ## Se a tela de login não responder
 
-A tela de login mostra uma linha de status embaixo ("versão 2.6.1 · pronto para entrar"). Se aparecer "os scripts do Firebase não carregaram", é internet/bloqueio; se aparecer "o Firebase ainda não respondeu", feche e abra de novo. Qualquer erro de JavaScript ou do Firestore aparece numa faixa vermelha na parte de baixo da tela — mande esse texto para diagnóstico.
+A tela de login mostra uma linha de status embaixo ("versão 2.6.2 · pronto para entrar"). Se aparecer "os scripts do Firebase não carregaram", é internet/bloqueio; se aparecer "o Firebase ainda não respondeu", feche e abra de novo. Qualquer erro de JavaScript ou do Firestore aparece numa faixa vermelha na parte de baixo da tela — mande esse texto para diagnóstico.
 
 Se o app novo foi publicado no mesmo endereço do antigo: o service worker antigo pode entregar a página velha até a segunda abertura. Abra o endereço no navegador, recarregue duas vezes, ou desinstale o PWA antigo e instale de novo. Abrir o `index.html` direto do arquivo (file://) não funciona: use sempre o endereço do GitHub Pages.
 

@@ -771,7 +771,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
    cartões de casas em congregacoes/{uid}/cartoes, cópias em .../backups.
    ===================================================================== */
 'use strict';
-const APP_VER='2.6.1';
+const APP_VER='2.6.2';
 const $=id=>document.getElementById(id);
 const pad2=k=>String(k).padStart(2,'0');
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -1230,6 +1230,7 @@ function applyRetorno(id,r){ if(!r||!r.k||!DB||!DB.t[String(+r.k)]) return; if((
   let msg=[]; const nm=(r.nome||'').trim();
   if(!t.started||t.end){ if(t.end){ ack(); return; } t.started=true; if(!t.start) t.start=today(); msg.push('iniciado'); }
   if(nm&&nm!==(t.resp||'').trim()){ t.resp=nm; if(!t.assign) t.assign=today(); msg.push('dirigente: '+nm); }
+  if(typeof r.obs==='string'&&r.obs.trim()!==(t.stop||'').trim()){ t.stop=r.obs.trim(); msg.push('observações atualizadas'); }
   if(Array.isArray(r.pend)){ const np=r.pend.filter(x=>Number.isInteger(x)).sort((a,b)=>a-b); if(JSON.stringify(np)!==JSON.stringify((t.pend||[]).slice().sort((a,b)=>a-b))){ t.pend=np; msg.push(np.length?`${np.length} quadra${np.length>1?'s':''} pendente${np.length>1?'s':''}`:'todas as quadras feitas'); } }
   if(r.done&&!t.end){ t.end=r.done>=t.start?r.done:t.start; addHist(t,t.start,t.end); msg.push('concluído em '+br(t.end)); }
   if(msg.length){ touch(k); refreshAll(); toast(`${t.resp||'Dirigente'} · território ${pad2(k)}: ${msg.join(', ')}`); }
