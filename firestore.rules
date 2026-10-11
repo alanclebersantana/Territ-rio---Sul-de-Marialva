@@ -22,6 +22,15 @@ service cloud.firestore {
       // nomes dos territórios para o app Cartões
       match /publico/{d} { allow read: if signed(); allow write: if isOwner(c); }
       // cartões de casas: administrador faz tudo; publicadores (anônimos) só marcam, datam, acrescentam/corrigem/removem casas
+      // app Dirigente: o administrador grava o documento de cada dirigente (código = id); o dirigente (anônimo) só lê
+      match /dirigentes/{code} { allow read: if signed(); allow write: if isOwner(c); }
+      // retornos do app Dirigente: quadras pendentes e conclusão; o dirigente (anônimo) cria/atualiza só esses campos
+      match /retornos/{id} {
+        allow read: if signed();
+        allow delete: if isOwner(c);
+        allow create: if isOwner(c) || (isAnon() && request.resource.data.keys().hasOnly(['code', 'k', 'nome', 'pend', 'done', 'ts']));
+        allow update: if isOwner(c) || (isAnon() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['code', 'k', 'nome', 'pend', 'done', 'ts']));
+      }
       match /cartoes/{id} {
         allow read: if signed();
         allow create, delete: if isOwner(c);
